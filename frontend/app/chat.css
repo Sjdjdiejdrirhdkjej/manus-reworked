@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+body {
+  @apply font-sans;
+}
+
+/* Keyframes for animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 1s ease-in-out;
+  }
+
+  .animate-pulse {
+    animation: pulse 2s infinite;
+  }
+}
+
+/* Chat container styles */
+.chat-container {
+  @apply flex-1 p-4 overflow-y-auto bg-gray-100;
+  @apply rounded-lg shadow-md;
+  @apply mt-4;
+  @apply max-h-[calc(100vh-160px)];
+  @apply animate-fadeIn;
+}
+
+/* Message bubble styles */
+.message-bubble {
+  @apply mb-4 p-3 rounded-lg max-w-xs;
+  @apply break-words;
+  @apply shadow-sm;
+  @apply transition-all duration-200;
+  @apply animate-fadeIn;
+}
+
+.user-message {
+  @apply bg-blue-500 text-white ml-auto;
+  @apply hover:bg-blue-600;
+  @apply animate-pulse;
+}
+
+.ai-message {
+  @apply bg-gray-200 text-black;
+  @apply hover:bg-gray-300;
+  @apply animate-pulse;
+}
+
+/* Input area styles */
+.input-area {
+  @apply p-4 border-t border-gray-200;
+  @apply bg-white;
+  @apply shadow-md;
+  @apply rounded-t-lg;
+  @apply animate-fadeIn;
+}
+
+.input-container {
+  @apply flex;
+  @apply items-center;
+  @apply space-x-2;
+}
+
+.input-field {
+  @apply flex-1 p-3 border border-gray-300 rounded-lg;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500;
+  @apply transition-all duration-200;
+  @apply animate-fadeIn;
+}
+
+.send-button {
+  @apply bg-blue-500 text-white p-3 rounded-lg;
+  @apply hover:bg-blue-600;
+  @apply transition-all duration-200;
+  @apply flex-shrink-0;
+  @apply animate-fadeIn;
+}
+
+/* Header styles */
+.header {
+  @apply bg-gradient-to-r from-blue-600 to-blue-500;
+  @apply text-white p-4;
+  @apply shadow-md;
+  @apply rounded-b-lg;
+  @apply animate-fadeIn;
+}
+
+.header h1 {
+  @apply text-2xl font-bold;
+  @apply text-center;
+}
+
+/* Responsive styles */
+@media (max-width: 640px) {
+  .chat-container {
+    @apply p-2;
+  }
+
+  .message-bubble {
+    @apply p-2;
+  }
+
+  .input-field {
+    @apply p-2;
+  }
+
+  .send-button {
+    @apply p-2;
+  }
+}
