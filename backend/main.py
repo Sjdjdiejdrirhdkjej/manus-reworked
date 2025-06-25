@@ -14,7 +14,13 @@ app = FastAPI()
 # Add CORS middleware to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://*.replit.dev", "https://*.replit.app"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "https://*.replit.dev", 
+        "https://*.replit.app",
+        "https://*.vercel.app",
+        "https://vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,3 +70,6 @@ async def chat(message: ChatMessage):
     except Exception as e:
         print(f"Error calling Mistral AI: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing your request with Mistral AI: {str(e)}")
+
+# Vercel serverless function handler
+handler = app
