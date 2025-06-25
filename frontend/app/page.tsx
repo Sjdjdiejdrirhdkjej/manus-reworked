@@ -76,14 +76,12 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen">
-      <div className="sidebar">
-        <h2 className="sidebar-title">Manus's Computer</h2>
-      </div>
-      <div className="flex flex-col flex-1">
-        <header className="header">
-          <h1>AI Chat App</h1>
-        </header>
+    <div className="flex flex-col h-screen">
+      <header className="header">
+        <h1>AI Chat App</h1>
+      </header>
+      <div className="flex flex-1">
+        <div className="flex flex-col flex-1">
       <div
         ref={chatContainerRef}
         className="chat-container"
@@ -157,6 +155,10 @@ export default function Home() {
             </svg>
           </div>
         </div>
+        </div>
+        </div>
+        <div className="sidebar-right">
+          <h2 className="sidebar-title">Manus's Computer</h2>
         </div>
       </div>
     </div>
