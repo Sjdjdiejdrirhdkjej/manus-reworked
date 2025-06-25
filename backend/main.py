@@ -7,6 +7,7 @@ load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+import json
 from mistralai import Mistral
 from scrapybara import Scrapybara
 
@@ -225,27 +226,61 @@ Use these tools to help users with web automation, data extraction, and browser-
 
         # Handle tool calls with Scrapybara
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
-            for tool_call in response_message.tool_calls:
-                tool_name = tool_call.function.name
-                tool_args = eval(tool_call.function.arguments)
-                tools_used.append({"name": tool_name, "args": tool_args})
+            session = None
+            try:
+                # Start a new Scrapybara session
+                session = scrapybara_client.start_ubuntu()
+                
+                for tool_call in response_message.tool_calls:
+                    tool_name = tool_call.function.name
+                    tool_args = json.loads(tool_call.function.arguments)
+                    tools_used.append({"name": tool_name, "args": tool_args})
 
-                # Execute Scrapybara actions
-                try:
-                    if tool_name == "navigate_to":
-                        # Start a new session and navigate
-                        session = scrapybara_client.start_ubuntu()
-                        result = f"Navigated to {tool_args['url']}"
-                    elif tool_name == "take_screenshot":
-                        # Take screenshot (would need active session)
-                        result = "Screenshot taken"
-                    # Add more Scrapybara action implementations here
-                    else:
-                        result = f"Executed {tool_name} with args {tool_args}"
+                    # Execute Scrapybara actions with proper session handling
+                    try:
+                        if tool_name == "navigate_to":
+                            session.navigate(tool_args['url'])
+                            result = f"Successfully navigated to {tool_args['url']}"
+                        elif tool_name == "click_element":
+                            session.click(tool_args['selector'])
+                            result = f"Clicked element: {tool_args['selector']}"
+                        elif tool_name == "type_text":
+                            session.type(tool_args['selector'], tool_args['text'])
+                            result = f"Typed '{tool_args['text']}' into {tool_args['selector']}"
+                        elif tool_name == "scroll_page":
+                            direction = 1 if tool_args['direction'].lower() == 'down' else -1
+                            session.scroll(direction * tool_args['amount'])
+                            result = f"Scrolled {tool_args['direction']} by {tool_args['amount']} pixels"
+                        elif tool_name == "take_screenshot":
+                            screenshot_data = session.screenshot()
+                            result = "Screenshot taken successfully"
+                            browser_action = {"type": tool_name, "args": tool_args, "result": result, "screenshot": screenshot_data}
+                            continue
+                        elif tool_name == "extract_text":
+                            text_content = session.get_text(tool_args['selector'])
+                            result = f"Extracted text: {text_content[:200]}..." if len(text_content) > 200 else f"Extracted text: {text_content}"
+                        elif tool_name == "extract_links":
+                            links = session.get_links()
+                            result = f"Found {len(links)} links on the page"
+                        elif tool_name == "get_page_title":
+                            title = session.get_title()
+                            result = f"Page title: {title}"
+                        else:
+                            result = f"Unknown tool: {tool_name}"
 
-                    browser_action = {"type": tool_name, "args": tool_args, "result": result}
-                except Exception as e:
-                    browser_action = {"type": tool_name, "args": tool_args, "error": str(e)}
+                        browser_action = {"type": tool_name, "args": tool_args, "result": result}
+                    except Exception as e:
+                        browser_action = {"type": tool_name, "args": tool_args, "error": str(e)}
+                        
+            except Exception as e:
+                browser_action = {"type": "session_error", "args": {}, "error": f"Failed to start Scrapybara session: {str(e)}"}
+            finally:
+                # Clean up session
+                if session:
+                    try:
+                        session.close()
+                    except:
+                        pass
 
         response_text = response_message.content or "Action completed."
 
