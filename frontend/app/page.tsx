@@ -17,6 +17,7 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMode, setSelectedMode] = useState<'chat' | 'cua' | 'high-effort'>('chat');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const chatContainerRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
 
   useEffect(() => {
@@ -108,6 +109,16 @@ export default function Home() {
         )}
       </div>
       <div className="input-area">
+        {!isSidebarOpen && (
+          <div className="computer-preview">
+            <div className="computer-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="computer-svg">
+                <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h6l-2 2v1h8v-1l-2-2h6c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
+              </svg>
+              <span className="computer-text">Manus's Computer</span>
+            </div>
+          </div>
+        )}
         <div className="input-container">
           <input
             type="text"
@@ -157,9 +168,31 @@ export default function Home() {
         </div>
         </div>
         </div>
-        <div className="sidebar-right">
-          <h2 className="sidebar-title">Manus's Computer</h2>
-        </div>
+        {isSidebarOpen && (
+          <div className="sidebar-right">
+            <div className="sidebar-header">
+              <h2 className="sidebar-title">Manus's Computer</h2>
+              <button 
+                className="toggle-button"
+                onClick={() => setIsSidebarOpen(false)}
+                title="Close computer"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+        {!isSidebarOpen && (
+          <button 
+            className="reopen-button"
+            onClick={() => setIsSidebarOpen(true)}
+            title="Open computer"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="reopen-icon">
+              <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h6l-2 2v1h8v-1l-2-2h6c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
