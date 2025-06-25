@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from mistralai import Mistral
 from scrapybara import Scrapybara
 
@@ -49,7 +50,7 @@ class ChatMessage(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     tools_used: list = []
-    browser_action: dict = None
+    browser_action: Optional[dict] = None
 
 @app.get("/")
 async def root():
