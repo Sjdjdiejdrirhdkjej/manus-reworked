@@ -1,7 +1,10 @@
 
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from mistralai.client import MistralClient
+from mistralai.models.chat_completion import ChatMessage as MistralChatMessage
 
 app = FastAPI()
 
@@ -13,6 +16,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize Mistral client
+api_key = os.getenv("MISTRAL_API_KEY")
+if not api_key:
+    print("Warning: MISTRAL_API_KEY environment variable not set")
+    client = None
+else:
+    client = MistralClient(api_key=api_key)
 
 class ChatMessage(BaseModel):
     message: str
@@ -26,6 +37,24 @@ async def root():
 
 @app.post("/chat")
 async def chat(message: ChatMessage):
-    # Simple echo response for now - you can integrate your AI logic here
-    response = f"Backend received: {message.message}"
-    return ChatResponse(response=response)
+    if not client:
+        return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
+    
+    try:
+        # Create chat messages for Mistral
+        messages = [
+            MistralChatMessage(role="user", content=message.message)
+        ]
+        
+        # Get response from Mistral AI
+        chat_response = client.chat(
+            model="mistral-tiny",  # You can use "mistral-small" or "mistral-medium" for better performance
+            messages=messages,
+        )
+        
+        ai_response = chat_response.choices[0].message.content
+        return ChatResponse(response=ai_response)
+        
+    except Exception as e:
+        print(f"Error calling Mistral AI: {e}")
+        raise HTTPException(status_code=500, detail="Error processing your request with Mistral AI")
