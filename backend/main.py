@@ -302,7 +302,7 @@ Browser-use, file management and terminal commands will be sent directly to Dayt
                     "args": tool_args
                 }
         
-        return ChatResponse(response=ai_response, tools_used=tools_used, desktop_action=desktop_action)
+        return ChatResponse(response=ai_response, tools_used=tools_used, desktop_action=desktop_action or {})
         
     except Exception as e:
         print(f"Error calling Mistral AI: {e}")
