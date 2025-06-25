@@ -157,3 +157,25 @@ body {
     @apply p-2;
   }
 }
+
+.mode-option.active .mode-icon {
+  color: #4CAF50;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #1a1a1a;
+  border-right: 1px solid #333;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333;
+}
