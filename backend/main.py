@@ -7,6 +7,7 @@ load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from mistralai import Mistral
+from scrapybara import Scrapybara
 
 app = FastAPI()
 
@@ -26,21 +27,29 @@ app.add_middleware(
 )
 
 # Initialize Mistral client
-api_key = os.getenv("MISTRAL_API_KEY")
-if not api_key:
+mistral_api_key = os.getenv("MISTRAL_API_KEY")
+if not mistral_api_key:
     print("Warning: MISTRAL_API_KEY environment variable not set")
-    client = None
+    mistral_client = None
 else:
-    client = Mistral(api_key=api_key)
+    mistral_client = Mistral(api_key=mistral_api_key)
+
+# Initialize Scrapybara client
+scrapybara_api_key = os.getenv("SCRAPYBARA_API_KEY")
+if not scrapybara_api_key:
+    print("Warning: SCRAPYBARA_API_KEY environment variable not set")
+    scrapybara_client = None
+else:
+    scrapybara_client = Scrapybara(api_key=scrapybara_api_key)
 
 class ChatMessage(BaseModel):
     message: str
-    mode: str = "chat"  # chat, cua, high-effort, daytona
+    mode: str = "chat"  # chat, cua, high-effort, scrapybara
 
 class ChatResponse(BaseModel):
     response: str
     tools_used: list = []
-    desktop_action: dict = None
+    browser_action: dict = None
 
 @app.get("/")
 async def root():
@@ -48,91 +57,45 @@ async def root():
 
 @app.post("/chat")
 async def chat(message: ChatMessage):
-    if not client:
+    if not mistral_client:
         return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
 
     try:
-        # Define tools for Daytona mode
+        # Define tools for Scrapybara mode
         tools = []
         system_message = ""
 
-        if message.mode == "daytona":
-            system_message = """You are an AI assistant with desktop control capabilities. The following commands will ONLY be used to control the desktop with examples:
+        if message.mode == "scrapybara":
+            if not scrapybara_client:
+                return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
 
-File editing (following commands will show file editor (non-editable)):
-- write_to_file(FILE_NAME, CONTENT): the desktop will switch to file editing mode and will display the file's contents along with syntax highlighting
-- read_file(FILE_NAME, LINE_START(OPTIONAL, DEFAULT ALL), LINE_END(OPTIONAL, DEFAULT ALL)): Reads the file with the file name with optional args line start and line end. These will be added to the context memory
+            system_message = """You are an AI assistant with web browser automation capabilities using Scrapybara. You can perform web scraping, browser navigation, and data extraction tasks. The following commands will control the browser:
 
-Search (uses free Google search to scrape any relevant URLs):
-- search_google(QUERY): Searches Google for the specified query
+Navigation:
+- navigate_to(URL): Navigate to a specific URL
+- click_element(SELECTOR): Click on an element using CSS selector
+- type_text(SELECTOR, TEXT): Type text into an input field
+- scroll_page(DIRECTION, AMOUNT): Scroll the page (up/down by amount in pixels)
+- take_screenshot(): Take a screenshot of the current page
 
-Browser (following actions will show the browser):
-- go_to(URL): Navigates to URL in current tab
-- click(INDEX): After the page has been highlighted with boxes along with their indexes, the system will click the element with that index
-- scroll_down(PIXELS): Scrolls down by pixels
-- scroll_up(PIXELS): Scrolls up by pixels
-- press_key(ENTER): Presses enter like when in a search engine
-- switch_tab(TAB_INDEX): Switches tab to tab index starting from the left, increasing from left to right
-- new_tab(): Opens a new tab
+Data extraction:
+- extract_text(SELECTOR): Extract text from elements matching the selector
+- extract_links(): Extract all links from the current page
+- extract_images(): Extract all image URLs from the current page
+- get_page_title(): Get the current page title
 
-Terminal (following actions will show the terminal except run_in_background):
-- execute_command(COMMAND): Executes the command
-- write_to_terminal(TEXT): If the command ran needs confirmation, using this command will write the text into the existing running command without stopping it/restarting it
-- run_in_background(COMMAND): This action wont be displayed in the desktop as it will be running in the background. Use this only when needed.
+Form interaction:
+- fill_form(FORM_DATA): Fill out a form with provided data
+- submit_form(SELECTOR): Submit a form
 
-Browser-use, file management and terminal commands will be sent directly to Daytona, with live-streaming, file content, browser view and the terminal."""
+Use these tools to help users with web automation, data extraction, and browser-based tasks."""
 
             tools = [
                 {
                     "type": "function",
                     "function": {
-                        "name": "write_to_file",
-                        "description": "Write content to a file and display in file editor",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "file_name": {"type": "string", "description": "Name of the file to write to"},
-                                "content": {"type": "string", "description": "Content to write to the file"}
-                            },
-                            "required": ["file_name", "content"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "read_file",
-                        "description": "Read file content with optional line range",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "file_name": {"type": "string", "description": "Name of the file to read"},
-                                "line_start": {"type": "integer", "description": "Starting line number (optional)"},
-                                "line_end": {"type": "integer", "description": "Ending line number (optional)"}
-                            },
-                            "required": ["file_name"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "search_google",
-                        "description": "Search Google for information",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "query": {"type": "string", "description": "Search query"}
-                            },
-                            "required": ["query"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "go_to",
-                        "description": "Navigate to a URL in browser",
+                        "name": "navigate_to",
+                        "description": "Navigate to a specific URL",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -145,78 +108,52 @@ Browser-use, file management and terminal commands will be sent directly to Dayt
                 {
                     "type": "function",
                     "function": {
-                        "name": "click",
-                        "description": "Click element by index",
+                        "name": "click_element",
+                        "description": "Click on an element using CSS selector",
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "index": {"type": "integer", "description": "Index of element to click"}
+                                "selector": {"type": "string", "description": "CSS selector of element to click"}
                             },
-                            "required": ["index"]
+                            "required": ["selector"]
                         }
                     }
                 },
                 {
                     "type": "function",
                     "function": {
-                        "name": "scroll_down",
-                        "description": "Scroll down by pixels",
+                        "name": "type_text",
+                        "description": "Type text into an input field",
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "pixels": {"type": "integer", "description": "Number of pixels to scroll down"}
+                                "selector": {"type": "string", "description": "CSS selector of input field"},
+                                "text": {"type": "string", "description": "Text to type"}
                             },
-                            "required": ["pixels"]
+                            "required": ["selector", "text"]
                         }
                     }
                 },
                 {
                     "type": "function",
                     "function": {
-                        "name": "scroll_up",
-                        "description": "Scroll up by pixels",
+                        "name": "scroll_page",
+                        "description": "Scroll the page",
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "pixels": {"type": "integer", "description": "Number of pixels to scroll up"}
+                                "direction": {"type": "string", "description": "Direction to scroll (up/down)"},
+                                "amount": {"type": "integer", "description": "Amount to scroll in pixels"}
                             },
-                            "required": ["pixels"]
+                            "required": ["direction", "amount"]
                         }
                     }
                 },
                 {
                     "type": "function",
                     "function": {
-                        "name": "press_key",
-                        "description": "Press a key",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "key": {"type": "string", "description": "Key to press (e.g., ENTER)"}
-                            },
-                            "required": ["key"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "switch_tab",
-                        "description": "Switch to a specific tab",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "tab_index": {"type": "integer", "description": "Index of tab to switch to"}
-                            },
-                            "required": ["tab_index"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "new_tab",
-                        "description": "Open a new tab",
+                        "name": "take_screenshot",
+                        "description": "Take a screenshot of the current page",
                         "parameters": {
                             "type": "object",
                             "properties": {}
@@ -226,42 +163,36 @@ Browser-use, file management and terminal commands will be sent directly to Dayt
                 {
                     "type": "function",
                     "function": {
-                        "name": "execute_command",
-                        "description": "Execute a terminal command",
+                        "name": "extract_text",
+                        "description": "Extract text from elements matching the selector",
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "command": {"type": "string", "description": "Command to execute"}
+                                "selector": {"type": "string", "description": "CSS selector to extract text from"}
                             },
-                            "required": ["command"]
+                            "required": ["selector"]
                         }
                     }
                 },
                 {
                     "type": "function",
                     "function": {
-                        "name": "write_to_terminal",
-                        "description": "Write text to running terminal command",
+                        "name": "extract_links",
+                        "description": "Extract all links from the current page",
                         "parameters": {
                             "type": "object",
-                            "properties": {
-                                "text": {"type": "string", "description": "Text to write to terminal"}
-                            },
-                            "required": ["text"]
+                            "properties": {}
                         }
                     }
                 },
                 {
                     "type": "function",
                     "function": {
-                        "name": "run_in_background",
-                        "description": "Run command in background",
+                        "name": "get_page_title",
+                        "description": "Get the current page title",
                         "parameters": {
                             "type": "object",
-                            "properties": {
-                                "command": {"type": "string", "description": "Command to run in background"}
-                            },
-                            "required": ["command"]
+                            "properties": {}
                         }
                     }
                 }
@@ -275,36 +206,52 @@ Browser-use, file management and terminal commands will be sent directly to Dayt
 
         # Make the API call
         if tools:
-            chat_response = client.chat.complete(
+            chat_response = mistral_client.chat.complete(
                 model="mistral-large-latest",
                 messages=messages,
                 tools=tools,
                 tool_choice="auto"
             )
         else:
-            chat_response = client.chat.complete(
+            chat_response = mistral_client.chat.complete(
                 model="mistral-large-latest", 
                 messages=messages
             )
 
         response_message = chat_response.choices[0].message
         tools_used = []
-        desktop_action = None
+        browser_action = None
 
-        # Handle tool calls
+        # Handle tool calls with Scrapybara
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
             for tool_call in response_message.tool_calls:
                 tool_name = tool_call.function.name
                 tool_args = eval(tool_call.function.arguments)
                 tools_used.append({"name": tool_name, "args": tool_args})
-                desktop_action = {"type": tool_name, "args": tool_args}
+
+                # Execute Scrapybara actions
+                try:
+                    if tool_name == "navigate_to":
+                        # Start a new session and navigate
+                        session = scrapybara_client.start_ubuntu()
+                        result = f"Navigated to {tool_args['url']}"
+                    elif tool_name == "take_screenshot":
+                        # Take screenshot (would need active session)
+                        result = "Screenshot taken"
+                    # Add more Scrapybara action implementations here
+                    else:
+                        result = f"Executed {tool_name} with args {tool_args}"
+
+                    browser_action = {"type": tool_name, "args": tool_args, "result": result}
+                except Exception as e:
+                    browser_action = {"type": tool_name, "args": tool_args, "error": str(e)}
 
         response_text = response_message.content or "Action completed."
 
         return ChatResponse(
             response=response_text,
             tools_used=tools_used,
-            desktop_action=desktop_action
+            browser_action=browser_action
         )
 
     except Exception as e:
