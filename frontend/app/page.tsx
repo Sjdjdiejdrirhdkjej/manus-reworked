@@ -18,6 +18,14 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMode, setSelectedMode] = useState<'chat' | 'cua' | 'high-effort'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [computerMode, setComputerMode] = useState<'terminal' | 'browser' | 'files'>('terminal');
+  const [terminalHistory, setTerminalHistory] = useState<string[]>(['Welcome to Manus\'s Computer Terminal']);
+  const [terminalInput, setTerminalInput] = useState('');
+  const [browserUrl, setBrowserUrl] = useState('https://www.google.com');
+  const [fileContent, setFileContent] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [diffMode, setDiffMode] = useState(false);
+  const [originalContent, setOriginalContent] = useState('');
   const chatContainerRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
 
   useEffect(() => {
@@ -26,6 +34,44 @@ export default function Home() {
         chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleTerminalCommand = (command: string) => {
+    const newHistory = [...terminalHistory, `$ ${command}`];
+    
+    // Simple command simulation
+    switch (command.toLowerCase()) {
+      case 'ls':
+        newHistory.push('main.py  requirements.txt  README.md');
+        break;
+      case 'pwd':
+        newHistory.push('/home/runner/workspace');
+        break;
+      case 'whoami':
+        newHistory.push('manus');
+        break;
+      case 'date':
+        newHistory.push(new Date().toString());
+        break;
+      case 'clear':
+        setTerminalHistory(['Welcome to Manus\'s Computer Terminal']);
+        setTerminalInput('');
+        return;
+      default:
+        if (command.startsWith('cat ')) {
+          const filename = command.substring(4);
+          newHistory.push(`Content of ${filename}:`);
+          newHistory.push('# This is a simulated file content');
+          newHistory.push('print("Hello from simulated file")');
+        } else if (command.startsWith('echo ')) {
+          newHistory.push(command.substring(5));
+        } else {
+          newHistory.push(`bash: ${command}: command not found`);
+        }
+    }
+    
+    setTerminalHistory(newHistory);
+    setTerminalInput('');
+  };
 
   const handleSend = async () => {
     if (input.trim() === '') return;
@@ -179,6 +225,138 @@ export default function Home() {
               >
                 ×
               </button>
+            </div>
+            
+            <div className="computer-modes">
+              <div className="mode-tabs">
+                <button 
+                  className={`mode-tab ${computerMode === 'terminal' ? 'active' : ''}`}
+                  onClick={() => setComputerMode('terminal')}
+                >
+                  Terminal
+                </button>
+                <button 
+                  className={`mode-tab ${computerMode === 'browser' ? 'active' : ''}`}
+                  onClick={() => setComputerMode('browser')}
+                >
+                  Browser
+                </button>
+                <button 
+                  className={`mode-tab ${computerMode === 'files' ? 'active' : ''}`}
+                  onClick={() => setComputerMode('files')}
+                >
+                  Files
+                </button>
+              </div>
+              
+              <div className="mode-content">
+                {computerMode === 'terminal' && (
+                  <div className="terminal-container">
+                    <div className="terminal-output">
+                      {terminalHistory.map((line, index) => (
+                        <div key={index} className="terminal-line">
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="terminal-input-container">
+                      <span className="terminal-prompt">$ </span>
+                      <input
+                        type="text"
+                        value={terminalInput}
+                        onChange={(e) => setTerminalInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleTerminalCommand(terminalInput);
+                          }
+                        }}
+                        className="terminal-input"
+                        placeholder="Enter command..."
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {computerMode === 'browser' && (
+                  <div className="browser-container">
+                    <div className="browser-address-bar">
+                      <input
+                        type="url"
+                        value={browserUrl}
+                        onChange={(e) => setBrowserUrl(e.target.value)}
+                        className="browser-url-input"
+                        placeholder="Enter URL..."
+                      />
+                    </div>
+                    <div className="browser-content">
+                      <iframe
+                        src={browserUrl}
+                        title="Browser"
+                        className="browser-frame"
+                        sandbox="allow-scripts allow-same-origin"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {computerMode === 'files' && (
+                  <div className="files-container">
+                    <div className="file-controls">
+                      <input
+                        type="text"
+                        value={fileName}
+                        onChange={(e) => setFileName(e.target.value)}
+                        className="file-name-input"
+                        placeholder="Enter filename..."
+                      />
+                      <button 
+                        className="diff-toggle"
+                        onClick={() => setDiffMode(!diffMode)}
+                      >
+                        {diffMode ? 'View Mode' : 'Diff Mode'}
+                      </button>
+                    </div>
+                    
+                    {diffMode ? (
+                      <div className="diff-view">
+                        <div className="diff-section">
+                          <h4>Original</h4>
+                          <textarea
+                            value={originalContent}
+                            onChange={(e) => setOriginalContent(e.target.value)}
+                            className="diff-textarea original"
+                            placeholder="Original content..."
+                          />
+                        </div>
+                        <div className="diff-section">
+                          <h4>Modified</h4>
+                          <textarea
+                            value={fileContent}
+                            onChange={(e) => setFileContent(e.target.value)}
+                            className="diff-textarea modified"
+                            placeholder="Modified content..."
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="file-preview">
+                        <textarea
+                          value={fileContent}
+                          onChange={(e) => setFileContent(e.target.value)}
+                          className="file-content-textarea"
+                          placeholder="File content will appear here..."
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="file-actions">
+                      <button className="file-action-btn save">Save</button>
+                      <button className="file-action-btn create">Create New</button>
+                      <button className="file-action-btn load">Load File</button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
