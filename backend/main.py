@@ -1,4 +1,3 @@
-
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -51,12 +50,12 @@ async def root():
 async def chat(message: ChatMessage):
     if not client:
         return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
-    
+
     try:
         # Define tools for Daytona mode
         tools = []
         system_message = ""
-        
+
         if message.mode == "daytona":
             system_message = """You are an AI assistant with desktop control capabilities. The following commands will ONLY be used to control the desktop with examples:
 
@@ -267,46 +266,50 @@ Browser-use, file management and terminal commands will be sent directly to Dayt
                     }
                 }
             ]
-        
-        # Create chat messages for Mistral
+
+        # Prepare messages for the API call
         messages = []
         if system_message:
             messages.append({"role": "system", "content": system_message})
         messages.append({"role": "user", "content": message.message})
-        
-        # Get response from Mistral AI using the new client
-        chat_params = {
-            "model": "mistral-small",
-            "messages": messages,
-        }
-        
+
+        # Make the API call
         if tools:
-            chat_params["tools"] = tools
-        
-        chat_response = client.chat.complete(**chat_params)
-        
-        ai_response = chat_response.choices[0].message.content
+            chat_response = client.chat.complete(
+                model="mistral-large-latest",
+                messages=messages,
+                tools=tools,
+                tool_choice="auto"
+            )
+        else:
+            chat_response = client.chat.complete(
+                model="mistral-large-latest", 
+                messages=messages
+            )
+
+        response_message = chat_response.choices[0].message
         tools_used = []
         desktop_action = None
-        
-        # Check if tools were used
-        if hasattr(chat_response.choices[0].message, 'tool_calls') and chat_response.choices[0].message.tool_calls:
-            for tool_call in chat_response.choices[0].message.tool_calls:
+
+        # Handle tool calls
+        if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
+            for tool_call in response_message.tool_calls:
                 tool_name = tool_call.function.name
-                tool_args = tool_call.function.arguments
+                tool_args = eval(tool_call.function.arguments)
                 tools_used.append({"name": tool_name, "args": tool_args})
-                
-                # Set desktop action for frontend
-                desktop_action = {
-                    "type": tool_name,
-                    "args": tool_args
-                }
-        
-        return ChatResponse(response=ai_response, tools_used=tools_used, desktop_action=desktop_action or {})
-        
+                desktop_action = {"type": tool_name, "args": tool_args}
+
+        response_text = response_message.content or "Action completed."
+
+        return ChatResponse(
+            response=response_text,
+            tools_used=tools_used,
+            desktop_action=desktop_action
+        )
+
     except Exception as e:
-        print(f"Error calling Mistral AI: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing your request with Mistral AI: {str(e)}")
+        print(f"Error in chat endpoint: {e}")
+        return ChatResponse(response=f"Sorry, there was an error: {str(e)}")
 
 # Vercel serverless function handler
 handler = app
