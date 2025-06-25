@@ -1,29 +1,28 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    
-    // Proxy request to FastAPI backend
-    const backendResponse = await fetch('http://0.0.0.0:8000/chat', {
+    const { message, mode = 'chat' } = await req.json();
+
+    // Forward to FastAPI backend
+    const response = await fetch('http://localhost:8000/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ message, mode }),
     });
 
-    if (!backendResponse.ok) {
+    if (!response.ok) {
       throw new Error('Backend request failed');
     }
 
-    const data = await backendResponse.json();
-    return NextResponse.json(data);
+    const data = await response.json();
+    return Response.json(data);
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process request' },
+    console.error('API route error:', error);
+    return Response.json(
+      { response: 'Sorry, there was an error processing your request.' },
       { status: 500 }
     );
   }

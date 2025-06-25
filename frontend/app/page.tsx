@@ -16,7 +16,7 @@ export default function Home() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<'chat' | 'cua' | 'high-effort'>('chat');
+  const [selectedMode, setSelectedMode] = useState<'chat' | 'cua' | 'high-effort' | 'daytona'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [computerMode, setComputerMode] = useState<'terminal' | 'browser' | 'files'>('terminal');
   const [terminalHistory, setTerminalHistory] = useState<string[]>(['Welcome to Manus\'s Computer Terminal']);
@@ -34,6 +34,48 @@ export default function Home() {
         chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleDesktopAction = (action: any) => {
+    const { type, args } = action;
+    
+    switch (type) {
+      case 'write_to_file':
+      case 'read_file':
+        setComputerMode('files');
+        setIsSidebarOpen(true);
+        if (type === 'write_to_file') {
+          setFileName(args.file_name);
+          setFileContent(args.content);
+        } else if (type === 'read_file') {
+          setFileName(args.file_name);
+          // In a real implementation, you would fetch the file content
+          setFileContent(`// Content of ${args.file_name}\n// Lines ${args.line_start || 'all'} to ${args.line_end || 'all'}`);
+        }
+        break;
+      case 'go_to':
+        setComputerMode('browser');
+        setIsSidebarOpen(true);
+        setBrowserUrl(args.url);
+        break;
+      case 'execute_command':
+      case 'write_to_terminal':
+      case 'run_in_background':
+        if (type !== 'run_in_background') {
+          setComputerMode('terminal');
+          setIsSidebarOpen(true);
+        }
+        const newHistory = [...terminalHistory, `$ ${args.command || args.text}`];
+        setTerminalHistory(newHistory);
+        break;
+      case 'search_google':
+        setComputerMode('browser');
+        setIsSidebarOpen(true);
+        setBrowserUrl(`https://www.google.com/search?q=${encodeURIComponent(args.query)}`);
+        break;
+      default:
+        console.log('Desktop action:', type, args);
+    }
+  };
 
   const handleTerminalCommand = (command: string) => {
     const newHistory = [...terminalHistory, `$ ${command}`];
@@ -93,7 +135,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: currentInput }),
+        body: JSON.stringify({ message: currentInput, mode: selectedMode }),
       });
 
       if (!response.ok) {
@@ -101,6 +143,11 @@ export default function Home() {
       }
 
       const data = await response.json();
+
+      // Handle desktop actions for Daytona mode
+      if (data.desktop_action && selectedMode === 'daytona') {
+        handleDesktopAction(data.desktop_action);
+      }
 
       const aiResponse: Message = {
         id: messages.length + 2,
@@ -209,6 +256,15 @@ export default function Home() {
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="mode-icon">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <div 
+            className={`mode-option ${selectedMode === 'daytona' ? 'active' : ''}`}
+            onClick={() => setSelectedMode('daytona')}
+            title="Daytona Mode"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="mode-icon">
+              <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h6l-2 2v1h8v-1l-2-2h6c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
             </svg>
           </div>
         </div>
