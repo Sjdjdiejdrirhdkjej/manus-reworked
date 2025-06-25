@@ -55,13 +55,13 @@ export default function Home() {
       }
 
       const data = await response.json();
-      
+
       const aiResponse: Message = {
         id: messages.length + 2,
         text: data.response,
         isUser: false,
       };
-      
+
       setMessages((prevMessages) => [...prevMessages, aiResponse]);
     } catch (error) {
       console.error('Error:', error);
@@ -77,7 +77,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen" style={{ backgroundColor: '#0D1B2A' }}>
       <header className="header">
         <h1>AI Chat App</h1>
       </header>
