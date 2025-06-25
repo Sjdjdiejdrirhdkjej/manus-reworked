@@ -77,6 +77,33 @@ body {
   @apply animate-fadeIn;
 }
 
+/* Mode selector styles */
+.mode-selector {
+  @apply flex justify-center items-center space-x-4 mt-3;
+  @apply border-t border-gray-100 pt-3;
+}
+
+.mode-option {
+  @apply w-10 h-10 rounded-full border-2 border-gray-300;
+  @apply flex items-center justify-center cursor-pointer;
+  @apply transition-all duration-200;
+  @apply hover:border-blue-400 hover:bg-blue-50;
+  @apply bg-white;
+}
+
+.mode-option.active {
+  @apply border-blue-500 bg-blue-500 text-white;
+  @apply shadow-md;
+}
+
+.mode-option:not(.active) {
+  @apply text-gray-500;
+}
+
+.mode-icon {
+  @apply w-5 h-5;
+}
+
 .input-container {
   @apply flex;
   @apply items-center;
