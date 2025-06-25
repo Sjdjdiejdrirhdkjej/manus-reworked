@@ -8,7 +8,6 @@ load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from mistralai.client import MistralClient
-from mistralai.models.chat_completion import ChatMessage
 
 app = FastAPI()
 
@@ -47,7 +46,7 @@ async def chat(message: ChatMessage):
     try:
         # Create chat messages for Mistral
         messages = [
-            ChatMessage(role="user", content=message.message)
+            {"role": "user", "content": message.message}
         ]
         
         # Get response from Mistral AI
