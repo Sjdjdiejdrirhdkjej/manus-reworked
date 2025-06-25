@@ -26,6 +26,7 @@ export default function Home() {
   const [fileName, setFileName] = useState('');
   const [diffMode, setDiffMode] = useState(false);
   const [originalContent, setOriginalContent] = useState('');
+  const [agentActivity, setAgentActivity] = useState<Array<{type: string, action: string, timestamp: Date}>>([]);
   const chatContainerRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
 
   useEffect(() => {
@@ -37,6 +38,20 @@ export default function Home() {
 
   const handleDesktopAction = (action: any) => {
     const { type, args } = action;
+    
+    // Track agent activity
+    const activity = {
+      type,
+      action: type === 'write_to_file' ? `Writing to ${args.file_name}` :
+              type === 'read_file' ? `Reading ${args.file_name}` :
+              type === 'go_to' ? `Navigating to ${args.url}` :
+              type === 'execute_command' ? `Executing: ${args.command}` :
+              type === 'search_google' ? `Searching: ${args.query}` :
+              `${type}: ${JSON.stringify(args)}`,
+      timestamp: new Date()
+    };
+    
+    setAgentActivity(prev => [...prev, activity]);
     
     switch (type) {
       case 'write_to_file':
@@ -273,39 +288,37 @@ export default function Home() {
         {isSidebarOpen && (
           <div className="sidebar-right">
             <div className="sidebar-header">
-              <h2 className="sidebar-title">Manus's Computer</h2>
+              <h2 className="sidebar-title">Agent Activity</h2>
               <button 
                 className="toggle-button"
                 onClick={() => setIsSidebarOpen(false)}
-                title="Close computer"
+                title="Close activity tracker"
               >
                 ×
               </button>
             </div>
             
-            <div className="computer-modes">
-              <div className="mode-tabs">
-                <button 
-                  className={`mode-tab ${computerMode === 'terminal' ? 'active' : ''}`}
-                  onClick={() => setComputerMode('terminal')}
-                >
-                  Terminal
-                </button>
-                <button 
-                  className={`mode-tab ${computerMode === 'browser' ? 'active' : ''}`}
-                  onClick={() => setComputerMode('browser')}
-                >
-                  Browser
-                </button>
-                <button 
-                  className={`mode-tab ${computerMode === 'files' ? 'active' : ''}`}
-                  onClick={() => setComputerMode('files')}
-                >
-                  Files
-                </button>
+            <div className="activity-tracker">
+              <div className="activity-scroll">
+                {agentActivity.length === 0 ? (
+                  <div className="activity-empty">No agent activity yet</div>
+                ) : (
+                  agentActivity.map((activity, index) => (
+                    <div key={index} className="activity-item">
+                      <div className="activity-type">{activity.type}</div>
+                      <div className="activity-action">{activity.action}</div>
+                      <div className="activity-timestamp">
+                        {activity.timestamp.toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-              
-              <div className="mode-content">
+            </div>
+            
+            <div className="current-view">
+              <div className="view-header">Current View: {computerMode}</div>
+              <div className="view-content">
                 {computerMode === 'terminal' && (
                   <div className="terminal-container">
                     <div className="terminal-output">
@@ -357,14 +370,8 @@ export default function Home() {
                 
                 {computerMode === 'files' && (
                   <div className="files-container">
-                    <div className="file-controls">
-                      <input
-                        type="text"
-                        value={fileName}
-                        onChange={(e) => setFileName(e.target.value)}
-                        className="file-name-input"
-                        placeholder="Enter filename..."
-                      />
+                    <div className="file-header">
+                      <div className="file-name-display">{fileName || 'No file selected'}</div>
                       <button 
                         className="diff-toggle"
                         onClick={() => setDiffMode(!diffMode)}
@@ -404,12 +411,6 @@ export default function Home() {
                         />
                       </div>
                     )}
-                    
-                    <div className="file-actions">
-                      <button className="file-action-btn save">Save</button>
-                      <button className="file-action-btn create">Create New</button>
-                      <button className="file-action-btn load">Load File</button>
-                    </div>
                   </div>
                 )}
               </div>
