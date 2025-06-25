@@ -207,18 +207,12 @@ Use these tools to help users with web automation, data extraction, and browser-
         messages.append({"role": "user", "content": message.message})
 
         # Make the API call
-        if tools:
-            chat_response = mistral_client.chat.complete(
-                model="mistral-large-latest",
-                messages=messages,
-                tools=tools,
-                tool_choice="auto"
-            )
-        else:
-            chat_response = mistral_client.chat.complete(
-                model="mistral-large-latest", 
-                messages=messages
-            )
+        chat_response = mistral_client.chat.complete(
+            model="mistral-large-latest",
+            messages=messages,
+            tools=tools if tools else None,
+            tool_choice="auto" if tools else None
+        )
 
         response_message = chat_response.choices[0].message
         tools_used = []
