@@ -25,7 +25,7 @@ export default function Home() {
     }
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim() === '') return;
 
     const newMessage: Message = {
@@ -35,19 +35,43 @@ export default function Home() {
     };
 
     setMessages([...messages, newMessage]);
+    const currentInput = input;
     setInput('');
-
-    // Simulate AI response
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: currentInput }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+      
       const aiResponse: Message = {
         id: messages.length + 2,
-        text: 'This is an AI response to: "' + input + '"',
+        text: data.response,
         isUser: false,
       };
+      
       setMessages((prevMessages) => [...prevMessages, aiResponse]);
+    } catch (error) {
+      console.error('Error:', error);
+      const errorResponse: Message = {
+        id: messages.length + 2,
+        text: 'Sorry, there was an error processing your request.',
+        isUser: false,
+      };
+      setMessages((prevMessages) => [...prevMessages, errorResponse]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
