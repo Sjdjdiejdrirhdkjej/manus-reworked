@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     const { message, mode = 'chat' } = await req.json();
 
     // Forward to FastAPI backend
-    const response = await fetch('http://localhost:8000/chat', {
+    const response = await fetch('http://0.0.0.0:8000/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
