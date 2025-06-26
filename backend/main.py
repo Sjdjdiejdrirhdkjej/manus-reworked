@@ -46,12 +46,12 @@ else:
 
 class ChatMessage(BaseModel):
     message: str
-    mode: str = "chat"  # chat, cua, high-effort, scrapybara
+    mode: str = "chat"  # chat, cua, high-effort, daytona
 
 class ChatResponse(BaseModel):
     response: str
     tools_used: list = []
-    browser_action: Optional[dict] = None
+    desktop_action: Optional[dict] = None
 
 @app.get("/")
 async def root():
@@ -67,37 +67,21 @@ async def chat(message: ChatMessage):
         tools = []
         system_message = ""
 
-        if message.mode == "scrapybara":
+        if message.mode == "daytona":
             if not scrapybara_client:
                 return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
 
-            system_message = """You are an AI assistant with web browser automation capabilities using Scrapybara. You can perform web scraping, browser navigation, and data extraction tasks. The following commands will control the browser:
-
-Navigation:
-- navigate_to(URL): Navigate to a specific URL
-- click_element(SELECTOR): Click on an element using CSS selector
-- type_text(SELECTOR, TEXT): Type text into an input field
-- scroll_page(DIRECTION, AMOUNT): Scroll the page (up/down by amount in pixels)
-- take_screenshot(): Take a screenshot of the current page
-
-Data extraction:
-- extract_text(SELECTOR): Extract text from elements matching the selector
-- extract_links(): Extract all links from the current page
-- extract_images(): Extract all image URLs from the current page
-- get_page_title(): Get the current page title
-
-Form interaction:
-- fill_form(FORM_DATA): Fill out a form with provided data
-- submit_form(SELECTOR): Submit a form
-
-Use these tools to help users with web automation, data extraction, and browser-based tasks."""
+            system_message = """You are Manus, a powerful AI assistant. You have direct control over a web browser to perform tasks for the user.
+When the user asks for something that requires web access, you MUST use the provided tools to answer the request.
+Do not ask for permission. Do not explain what you are about to do. Just perform the action.
+For example, if the user asks "what's the weather in Paris?", you should use the tools to search for it and provide the answer."""
 
             tools = [
                 {
                     "type": "function",
                     "function": {
-                        "name": "navigate_to",
-                        "description": "Navigate to a specific URL",
+                        "name": "go_to",
+                        "description": "Navigate to a specific URL.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -216,7 +200,7 @@ Use these tools to help users with web automation, data extraction, and browser-
 
         response_message = chat_response.choices[0].message
         tools_used = []
-        browser_action = None
+        desktop_action = None
 
         # Handle tool calls with Scrapybara
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
@@ -232,9 +216,9 @@ Use these tools to help users with web automation, data extraction, and browser-
 
                     # Execute Scrapybara actions with proper session handling
                     try:
-                        if tool_name == "navigate_to":
+                        if tool_name == "go_to":
                             session.navigate(tool_args['url'])
-                            result = f"Successfully navigated to {tool_args['url']}"
+                            result = f"Navigated to {tool_args['url']}"
                         elif tool_name == "click_element":
                             session.click(tool_args['selector'])
                             result = f"Clicked element: {tool_args['selector']}"
@@ -248,7 +232,7 @@ Use these tools to help users with web automation, data extraction, and browser-
                         elif tool_name == "take_screenshot":
                             screenshot_data = session.screenshot()
                             result = "Screenshot taken successfully"
-                            browser_action = {"type": tool_name, "args": tool_args, "result": result, "screenshot": screenshot_data}
+                            desktop_action = {"type": tool_name, "args": tool_args, "result": result, "screenshot": screenshot_data}
                             continue
                         elif tool_name == "extract_text":
                             text_content = session.get_text(tool_args['selector'])
@@ -262,12 +246,12 @@ Use these tools to help users with web automation, data extraction, and browser-
                         else:
                             result = f"Unknown tool: {tool_name}"
 
-                        browser_action = {"type": tool_name, "args": tool_args, "result": result}
+                        desktop_action = {"type": tool_name, "args": tool_args, "result": result}
                     except Exception as e:
-                        browser_action = {"type": tool_name, "args": tool_args, "error": str(e)}
+                        desktop_action = {"type": tool_name, "args": tool_args, "error": str(e)}
                         
             except Exception as e:
-                browser_action = {"type": "session_error", "args": {}, "error": f"Failed to start Scrapybara session: {str(e)}"}
+                desktop_action = {"type": "session_error", "args": {}, "error": f"Failed to start Scrapybara session: {str(e)}"}
             finally:
                 # Clean up session
                 if session:
@@ -281,7 +265,7 @@ Use these tools to help users with web automation, data extraction, and browser-
         return ChatResponse(
             response=response_text,
             tools_used=tools_used,
-            browser_action=browser_action
+            desktop_action=desktop_action
         )
 
     except Exception as e:

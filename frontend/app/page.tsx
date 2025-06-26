@@ -187,7 +187,7 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen" style={{ backgroundColor: '#0D1B2A' }}>
       <header className="header">
-        <h1>AI Chat App</h1>
+        <h1>Manus</h1>
       </header>
       <div className="flex flex-1">
         <div className="flex flex-col flex-1">
