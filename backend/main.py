@@ -67,6 +67,17 @@ async def chat(message: ChatMessage):
         tools = []
         system_message = ""
 
+        # Determine which Mistral model to use based on the selected mode
+        model_to_use: str
+        if message.mode == "chat":
+            model_to_use = "mistral-large-latest"
+        elif message.mode == "cua":
+            model_to_use = "devstral-small-latest"
+        elif message.mode == "high-effort":
+            model_to_use = "magistral-medium-latest"
+        else: # This will cover 'daytona' and any other case
+            model_to_use = "mistral-large-latest"
+
         if message.mode == "daytona":
             if not scrapybara_client:
                 return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
@@ -192,7 +203,7 @@ For example, if the user asks "what's the weather in Paris?", you should use the
 
         # Make the API call
         chat_response = mistral_client.chat.complete(
-            model="mistral-large-latest",
+            model=model_to_use,
             messages=messages,
             tools=tools if tools else None,
             tool_choice="auto" if tools else None
