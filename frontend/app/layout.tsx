@@ -14,8 +14,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "AI Chat App",
-  description: "A modern AI chat application",
+  title: "Manus",
+  description: "An AI Chat App with Agent Capabilities",
   icons: [
     {
       rel: "icon",

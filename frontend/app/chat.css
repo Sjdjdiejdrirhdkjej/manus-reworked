@@ -28,6 +28,26 @@ body {
   }
 }
 
+@keyframes fadeInBottom {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 0.9;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @layer utilities {
   .animate-fadeIn {
     animation: fadeIn 1s ease-in-out;
@@ -35,6 +55,23 @@ body {
 
   .animate-pulse {
     animation: pulse 2s infinite;
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Visually hide an element, but leave it available for screen readers */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 }
 
@@ -49,6 +86,30 @@ body {
   border: 1px solid #1a3548;
 }
 
+/* Scroll to bottom button */
+.scroll-to-bottom-button {
+  @apply absolute bottom-5 left-1/2;
+  background-color: #2EC4B6;
+  color: #0D1B2A;
+  @apply rounded-full p-2 w-10 h-10 flex items-center justify-center;
+  @apply shadow-lg;
+  @apply cursor-pointer;
+  @apply transition-all duration-300 ease-in-out;
+  @apply z-10;
+  opacity: 0.9;
+  animation: fadeInBottom 0.3s ease-in-out;
+}
+
+.scroll-to-bottom-button:hover {
+  opacity: 1;
+  transform: translate(-50%, -2px);
+  background-color: #26a69a;
+}
+
+.scroll-to-bottom-button svg {
+  @apply w-5 h-5;
+}
+
 /* Message bubble styles */
 .message-bubble {
   @apply mb-4 p-3 rounded-lg max-w-xs;
@@ -56,6 +117,7 @@ body {
   @apply shadow-sm;
   @apply transition-all duration-200;
   @apply animate-fadeIn;
+  @apply relative; /* Added for positioning context for the copy button */
 }
 
 .user-message {
@@ -73,10 +135,34 @@ body {
   background-color: #1a3548;
   color: #E5E5E5;
   border: 1px solid #2a4a5e;
+  @apply pr-10; /* Add padding to prevent long text from overlapping with the button */
 }
 
 .ai-message:hover {
   background-color: #244054;
+}
+
+/* Copy to clipboard button for AI messages */
+.copy-button {
+  @apply absolute top-2 right-2 p-1 rounded-md;
+  @apply text-gray-400;
+  @apply opacity-0 group-hover:opacity-100; /* Show on hover of parent with 'group' class */
+  @apply transition-all duration-200;
+  @apply focus:outline-none focus:opacity-100; /* Make it visible on focus for accessibility */
+}
+
+.copy-button:hover {
+  @apply bg-gray-700/70 text-white;
+}
+
+.copy-button svg {
+  @apply w-5 h-5;
+}
+
+.typing-indicator {
+  @apply text-sm mt-1;
+  opacity: 0.7;
+  font-style: italic;
 }
 
 /* Input area styles */
@@ -89,11 +175,52 @@ body {
   @apply animate-fadeIn;
 }
 
-/* Mode selector styles */
-.mode-selector {
-  @apply flex justify-center items-center space-x-4 mt-3;
+/* Container for mode selector and other actions below input */
+.bottom-actions-container {
+  @apply flex justify-between items-center mt-3;
   border-top: 1px solid #1a3548;
   @apply pt-3;
+}
+
+.clear-chat-button {
+  @apply w-10 h-10 rounded-full border-2;
+  border-color: #1a3548;
+  @apply flex items-center justify-center cursor-pointer;
+  @apply transition-all duration-200;
+  background-color: #0D1B2A;
+  color: #E5E5E5;
+}
+
+.clear-chat-button:hover:not(:disabled) {
+  border-color: #ff6b6b; /* A reddish color for destructive action */
+  background-color: rgba(255, 107, 107, 0.1);
+}
+
+.clear-chat-button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Mode selector styles */
+.mode-selector {
+  @apply flex justify-center items-center space-x-4;
+}
+
+.mode-option-container {
+  @apply relative flex justify-center;
+}
+
+.mode-tooltip {
+  @apply absolute bottom-full mb-2 px-2 py-1 rounded-md;
+  background-color: #0D1B2A;
+  border: 1px solid #2a4a5e;
+  @apply text-white text-xs font-semibold;
+  @apply whitespace-nowrap;
+  @apply opacity-0 invisible scale-95;
+  @apply group-hover:opacity-100 group-hover:visible group-hover:scale-100;
+  @apply transition-all duration-200;
+  @apply pointer-events-none; /* So it doesn't interfere with clicks */
+  transform-origin: bottom;
+  z-index: 20;
 }
 
 .mode-option {
@@ -163,6 +290,59 @@ body {
 .send-button:hover {
   background-color: #26a69a;
   transform: translateY(-1px);
+}
+
+/* Global focus style for better accessibility */
+.mode-option:focus-visible, .clear-chat-button:focus-visible, .send-button:focus-visible, .scroll-to-bottom-button:focus-visible, .example-prompt-card:focus-visible, .copy-button:focus-visible {
+  @apply outline-none ring-2 ring-offset-2 ring-offset-[#0D1B2A] ring-[#2EC4B6];
+}
+
+/* Welcome Screen Styles */
+.welcome-screen {
+  @apply flex-1 flex items-center justify-center p-4;
+  background-color: #0D1B2A;
+  @apply animate-fadeIn;
+}
+
+.welcome-content {
+  @apply text-center max-w-2xl;
+}
+
+.welcome-title {
+  @apply text-5xl font-bold mb-2;
+  color: #E5E5E5;
+}
+
+.welcome-subtitle {
+  @apply text-lg mb-8;
+  color: #94a3b8;
+}
+
+.example-prompts-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+}
+
+.example-prompt-card {
+  @apply p-4 rounded-lg text-left;
+  background-color: #1a3548;
+  border: 1px solid #2a4a5e;
+  @apply transition-all duration-200 cursor-pointer;
+}
+
+.example-prompt-card:hover {
+  border-color: #2EC4B6;
+  transform: translateY(-2px);
+  background-color: #244054;
+}
+
+.prompt-card-title {
+  @apply font-semibold mb-1;
+  color: #E5E5E5;
+}
+
+.prompt-card-text {
+  @apply text-sm;
+  color: #94a3b8;
 }
 
 /* Header styles */
