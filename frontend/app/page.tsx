@@ -67,6 +67,8 @@ export default function Home() {
     } catch (error) {
       // 5. Update UI with a descriptive error message
       console.error('Failed to send message:', error);
+      // Log the full error object for debugging
+      console.log('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         text: error instanceof Error ? error.message : 'Sorry, an unknown error occurred.',

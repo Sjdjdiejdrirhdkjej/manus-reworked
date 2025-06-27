@@ -17,6 +17,11 @@ export type FileData = {
   originalContent?: string;
 };
 
+export type FileNode = {
+  name: string;
+  // Add other properties if they exist in the file tree, e.g., isDirectory: boolean, children?: FileNode[];
+};
+
 export type AgentDesktopState = {
   isSidebarOpen: boolean;
   activities: Activity[];
@@ -30,7 +35,7 @@ export type AgentDesktopState = {
   };
   files: {
     currentFile: FileData | null;
-    fileTree: any[]; // Simplified for now
+    fileTree: FileNode[];
   };
 };
 

@@ -63,6 +63,9 @@ async def chat(message: ChatMessage):
     if not mistral_client:
         return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
 
+    if not scrapybara_client:
+        return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
+
     try:
         # Define tools for Scrapybara
         scrapybara_tools = [
