@@ -6,7 +6,7 @@ import type { Mode } from '@/app/types';
 interface ChatInputProps {
   input: string;
   setInput: (value: string) => void;
-  handleSend: () => void;
+  handleSend: (message: string) => void;
   isLoading: boolean;
   selectedMode: Mode;
   setSelectedMode: (mode: Mode) => void;
@@ -47,7 +47,11 @@ const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleSend();
+        handleSend(input);
+        setInput('');
+        if (ref && typeof ref === 'object' && 'current' in ref && ref.current) {
+          ref.current.focus();
+        }
       }
     };
 
@@ -68,7 +72,13 @@ const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(
             placeholder="Type your message..."
             disabled={isLoading}
           />
-          <button onClick={handleSend} className="send-button flex items-center justify-center" disabled={isLoading}>
+          <button onClick={() => {
+            handleSend(input);
+            setInput('');
+            if (ref && typeof ref === 'object' && 'current' in ref && ref.current) {
+              ref.current.focus();
+            }
+          }} className="send-button flex items-center justify-center" disabled={isLoading}>
             {isLoading ? (
               <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import type { AgentDesktopState, AgentDesktopAction, FileNode } from '@/hooks/useAgentDesktop';
 import { Icons } from './Icons';
 
@@ -70,7 +71,7 @@ const AgentDesktopSidebar: React.FC<AgentDesktopSidebarProps> = ({
           <div className="browser-view">
             <p>URL: {browser.url}</p>
             {browser.screenshot && (
-              <img src={browser.screenshot} alt="Browser Screenshot" className="browser-screenshot" />
+              <Image src={browser.screenshot} alt="Browser Screenshot" className="browser-screenshot" width={500} height={300} />
             )}
           </div>
         )}

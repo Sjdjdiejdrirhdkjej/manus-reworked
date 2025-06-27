@@ -120,7 +120,7 @@ body {
 
 .user-message {
   background-color: #2EC4B6;
-  color: #0D1B2A;
+  color: var(--foreground);
   @apply ml-auto;
   @apply font-medium;
 }
@@ -131,7 +131,7 @@ body {
 
 .ai-message {
   background-color: #1a3548;
-  color: #E5E5E5;
+  color: var(--foreground);
   border: 1px solid #2a4a5e;
   @apply pr-10; /* Add padding to prevent long text from overlapping with the button */
 }
@@ -186,7 +186,7 @@ body {
   @apply flex items-center justify-center cursor-pointer;
   @apply transition-all duration-200;
   background-color: #0D1B2A;
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 .clear-chat-button:hover:not(:disabled) {
@@ -227,7 +227,7 @@ body {
   @apply flex items-center justify-center cursor-pointer;
   @apply transition-all duration-200;
   background-color: #0D1B2A;
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 .mode-option:hover {
@@ -243,7 +243,7 @@ body {
 }
 
 .mode-option:not(.active) {
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 .mode-icon {
@@ -260,7 +260,7 @@ body {
   @apply flex-1 p-3 rounded-lg;
   background-color: #1a3548;
   border: 1px solid #2a4a5e;
-  color: #E5E5E5;
+  color: var(--foreground);
   @apply transition-all duration-200;
   @apply animate-fadeIn;
 }
@@ -308,7 +308,7 @@ body {
 
 .welcome-title {
   @apply text-5xl font-bold mb-2;
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 .welcome-subtitle {
@@ -335,7 +335,7 @@ body {
 
 .prompt-card-title {
   @apply font-semibold mb-1;
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 .prompt-card-text {
@@ -346,7 +346,7 @@ body {
 /* Header styles */
 .header {
   background: linear-gradient(135deg, #0D1B2A 0%, #1a3548 100%);
-  color: #E5E5E5;
+  color: var(--foreground);
   @apply p-4;
   @apply shadow-md;
   @apply rounded-b-lg;
@@ -357,7 +357,7 @@ body {
 .header h1 {
   @apply text-2xl font-bold;
   @apply text-center;
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 /* Responsive styles */
@@ -428,7 +428,7 @@ body {
 
 .toggle-button:hover {
   background-color: #8A2BE2;
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 /* Activity tracker styles */
@@ -562,7 +562,7 @@ body {
   border: 1px solid #1a3548;
   border-radius: 4px;
   background-color: #1a3548;
-  color: #E5E5E5;
+  color: var(--foreground);
 }
 
 .browser-content {
@@ -756,5 +756,5 @@ body {
 .computer-text {
   font-size: 14px;
   font-weight: 500;
-  color: #E5E5E5;
+  color: var(--foreground);
 }

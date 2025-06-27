@@ -24,23 +24,19 @@ export default function Home() {
 
   const [desktopState, dispatch] = useAgentDesktop();
   // chatContainerRef and its useEffect are no longer needed as ChatMessageList manages its own scrolling
-  const handleSend = async (messageOverride?: string) => {
-    const messageToSend = messageOverride || input;
+  const handleSend = async (message: string) => {
+    const messageToSend = message;
     if (messageToSend.trim() === '') return;
 
     // 1. Optimistically update UI with the user's message
     const userMessage: Message = {
       id: crypto.randomUUID(),
-      text: messageToSend,
+      text: message,
       isUser: true,
     };
     setMessages((prevMessages) => [...prevMessages, userMessage]);
 
-    if (!messageOverride) {
-      setInput('');
-      // Re-focus the input field for a smoother conversational flow
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
+    
     setIsLoading(true);
 
     try {
@@ -112,7 +108,7 @@ export default function Home() {
             inputId={inputId}
             input={input}
             setInput={setInput}
-            handleSend={handleSend}
+            handleSend={() => handleSend(input)}
             isLoading={isLoading}
             selectedMode={selectedMode}
             setSelectedMode={setSelectedMode}
