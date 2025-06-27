@@ -4,3 +4,4 @@ mistralai>=1.8.2
 python-dotenv>=1.1.1
 uvicorn>=0.34.3
 scrapybara
+
