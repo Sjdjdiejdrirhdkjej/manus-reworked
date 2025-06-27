@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useId } from 'react';
-import type { MutableRefObject } from 'react';
+
 import type { Message, Mode } from '@/app/types';
 import ChatMessageList from '@/components/ChatMessageList';
 import ChatInput from '@/components/ChatInput';
@@ -49,7 +49,11 @@ export default function Home() {
 
       // 3. Handle side-effects from the response
       if (data.desktop_actions && Array.isArray(data.desktop_actions)) {
-        data.desktop_actions.forEach((action: any) => dispatch({ type: 'API_ACTION', payload: action }));
+        data.desktop_actions.forEach((action: unknown) => {
+          if (typeof action === 'object' && action !== null && 'type' in action && 'payload' in action) {
+            dispatch({ type: 'API_ACTION', payload: action.payload });
+          }
+        });
       }
 
       // 4. Update UI with the successful AI response

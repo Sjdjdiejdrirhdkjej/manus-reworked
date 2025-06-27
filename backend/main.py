@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import json
 from mistralai import Mistral
 from scrapybara import Scrapybara
@@ -342,6 +342,7 @@ For example, if the user asks "what's the weather in Paris?", you should use the
 
         response_message = chat_response.choices[0].message
         tools_used = []
+        desktop_actions_list = [] # Initialize a list to collect all desktop actions
         desktop_action = None
 
         # Handle tool calls with Scrapybara
