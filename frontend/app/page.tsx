@@ -5,6 +5,7 @@ import React, { useState, useRef, useId } from 'react';
 import type { Message, Mode } from '@/app/types';
 import ChatMessageList from '@/components/ChatMessageList';
 import ChatInput from '@/components/ChatInput';
+import ModeSelector from '@/components/ModeSelector';
 import './chat.css';
 import { useAgentDesktop } from '@/hooks/useAgentDesktop';
 import AgentDesktopSidebar from '@/components/AgentDesktopSidebar';
@@ -104,6 +105,7 @@ export default function Home() {
           ) : (
             <WelcomeScreen onExampleClick={handleExamplePrompt} />
           )}
+          <ModeSelector selectedMode={selectedMode} setSelectedMode={setSelectedMode} />
           <ChatInput
             ref={inputRef}
             inputId={inputId}

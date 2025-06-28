@@ -3,7 +3,7 @@ import { Mode } from "@/app/types";
 export async function sendMessageToApi(message: string, mode: Mode) {
   console.log('Sending message to API:', { message, mode });
   try {
-    const response = await fetch('http://localhost:8000/chat', {
+    const response = await fetch('/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

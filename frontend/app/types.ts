@@ -5,7 +5,7 @@ export type Message = {
   thinking?: Thinking;
 };
 
-export type Mode = 'chat' | 'agent';
+export type Mode = 'chat' | 'agent' | 'cua' | 'high-effort';
 
 export type Thinking = {
   id: string;
