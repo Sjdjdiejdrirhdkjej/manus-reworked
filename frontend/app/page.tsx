@@ -48,8 +48,8 @@ export default function Home() {
       // 3. Handle side-effects from the response
       if (data.desktop_actions && Array.isArray(data.desktop_actions)) {
         data.desktop_actions.forEach((action: unknown) => {
-          if (typeof action === 'object' && action !== null && 'type' in action && 'payload' in action) {
-            dispatch({ type: 'API_ACTION', payload: action.payload });
+          if (typeof action === 'object' && action !== null && 'type' in action) {
+            dispatch({ type: 'API_ACTION', payload: action });
           }
         });
       }

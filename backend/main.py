@@ -62,10 +62,12 @@ async def root():
 async def chat(message: ChatMessage):
     print(f"Received message: {message.message}, Mode: {message.mode}")
     if not mistral_client:
-        return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
+        if message.mode == "chat":
+            return ChatResponse(response="Mistral AI is not configured for chat mode. Please set the MISTRAL_API_KEY environment variable.")
+        else:
+            return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
 
-    if not scrapybara_client:
-        return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
+    
 
     try:
         # Define tools for Scrapybara
@@ -337,12 +339,20 @@ For example, if the user asks "what's the weather in Paris?", you should use the
         messages.append({"role": "user", "content": message.message})
 
         # Make the API call
-        chat_response = mistral_client.chat.complete(
-            model=model_to_use,
-            messages=messages,
-            tools=tools if tools else None,
-            tool_choice="auto" if tools else None
-        )
+        print(f"Making Mistral API call with model: {model_to_use}, tools: {bool(tools)}")
+        try:
+            print(f"Attempting Mistral API call with model: {model_to_use}")
+            chat_response = mistral_client.chat.complete(
+                model=model_to_use,
+                messages=messages,
+                tools=tools if tools else None,
+                tool_choice="auto" if tools else None
+            )
+            print("Mistral API call completed.")
+            print("Mistral API call successful.")
+        except Exception as e:
+            print(f"Error during Mistral API call: {e}")
+            raise # Re-raise the exception to be caught by the outer try-except
 
         response_message = chat_response.choices[0].message
         tools_used = []
@@ -355,7 +365,10 @@ For example, if the user asks "what's the weather in Paris?", you should use the
             desktop_actions_list = [] # Initialize a list to collect all desktop actions
             try:
                 # Start a new Scrapybara session
+                try:
+                print("Attempting to start Scrapybara session...")
                 session = scrapybara_client.start_ubuntu()
+                print("Scrapybara session started successfully.")
                 
                 for tool_call in response_message.tool_calls:
                     tool_name = tool_call.function.name
@@ -390,7 +403,9 @@ For example, if the user asks "what's the weather in Paris?", you should use the
                             result = f"Found {len(links)} links on the page"
                         elif tool_name == "list_files":
                             path = tool_args.get('path', '.')
-                            files = session.list_files(path)
+                            output = session.execute_command(f"ls -F {path}")
+                            files = [f.strip() for f in output.split('
+') if f.strip()]
                             result = f"Files in {path}:\n" + "\n".join(files)
                             current_desktop_action = {"type": tool_name, "args": tool_args, "result": result, "files": files}
                         elif tool_name == "get_page_title":
@@ -438,8 +453,9 @@ For example, if the user asks "what's the weather in Paris?", you should use the
                 if session:
                     try:
                         session.close()
-                    except:
-                        print(f"Warning: Failed to close Scrapybara session: {e}")
+                        print("Scrapybara session closed successfully.")
+                    except Exception as close_error:
+                        print(f"Warning: Failed to close Scrapybara session: {close_error}")
 
         response_text = response_message.content if response_message.content is not None else ""
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:

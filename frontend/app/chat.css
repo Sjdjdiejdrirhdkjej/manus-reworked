@@ -46,6 +46,15 @@ body {
   }
 }
 
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px); /* Increased bounce height */
+  }
+}
+
 @layer utilities {
   .animate-fadeIn {
     animation: fadeIn 1s ease-in-out;
@@ -157,7 +166,40 @@ body {
   @apply w-5 h-5;
 }
 
-.typing-indicator {
+.typing-indicator-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.typing-dots {
+  display: flex;
+  align-items: center;
+  height: 15px; /* Increased height for bounce */
+}
+
+.typing-indicator .dot {
+  animation: bounce 1.4s infinite ease-in-out; /* Ensure animation is applied */
+  font-size: 1.8em; /* Made dots significantly larger */
+  line-height: 1; /* Adjust line height to prevent extra space */
+  margin: 0 2px; /* Increased space between dots */
+}
+
+.typing-indicator .dot-1 {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator .dot-2 {
+  animation-delay: -0.16s;
+}
+
+.typing-indicator .dot-3 {
+  animation-delay: 0s;
+}
+
+.typing-text {
   @apply text-sm mt-1;
   opacity: 0.7;
   font-style: italic;

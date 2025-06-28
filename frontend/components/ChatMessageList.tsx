@@ -103,7 +103,14 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
               >
-                <div className="typing-indicator animate-pulse">AI is typing...</div>
+                <div className="typing-indicator-container">
+                  <div className="typing-dots">
+                    <span className="dot dot-1">.</span>
+                    <span className="dot dot-2">.</span>
+                    <span className="dot dot-3">.</span>
+                  </div>
+                  <div className="typing-text">AI is typing...</div>
+                </div>
               </div>
             );
           }

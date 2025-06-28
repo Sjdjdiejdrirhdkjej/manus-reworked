@@ -98,6 +98,17 @@ function agentDesktopReducer(state: AgentDesktopState, action: AgentDesktopActio
           return { ...newState, currentView: 'browser', browser: { ...newState.browser, url: payload.args.url || `https://www.google.com/search?q=${payload.args.query}` } };
         case 'take_screenshot':
           return { ...newState, currentView: 'browser', browser: { ...newState.browser, screenshot: payload.screenshot } };
+        case 'click_element':
+        case 'type_text':
+        case 'scroll_page':
+        case 'extract_text':
+        case 'extract_links':
+        case 'get_page_title':
+        case 'create_directory':
+        case 'move_file_or_directory':
+          // These actions primarily result in an activity log entry.
+          // The newState is already updated with the new activity.
+          return newState;
         default:
           return newState;
       }
