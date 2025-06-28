@@ -60,6 +60,7 @@ async def root():
 
 @app.post("/chat")
 async def chat(message: ChatMessage):
+    print(f"Received message: {message.message}, Mode: {message.mode}")
     if not mistral_client:
         return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
 
@@ -440,7 +441,7 @@ For example, if the user asks "what's the weather in Paris?", you should use the
                     except:
                         print(f"Warning: Failed to close Scrapybara session: {e}")
 
-        response_text = response_message.content
+        response_text = response_message.content if response_message.content is not None else ""
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
             response_text = response_text or "Action completed."
             # If there were tool calls, and no explicit text response,
@@ -468,12 +469,14 @@ For example, if the user asks "what's the weather in Paris?", you should use the
                 # If parsing fails, just return the full response and no thinking.
                 thinking_text = None
 
-        return ChatResponse(
+        final_response = ChatResponse(
             response=response_text,
             tools_used=tools_used, # This is a list of tool calls made by the model
             desktop_actions=desktop_actions_list if desktop_actions_list else None, # This is the list of results from executing those tools
             thinking=thinking_text
         )
+        print(f"Final ChatResponse: {final_response.json()}")
+        return final_response
 
     except Exception as e:
         print(f"Error in chat endpoint: {e}")

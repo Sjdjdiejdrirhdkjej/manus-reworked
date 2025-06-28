@@ -41,7 +41,8 @@ export default function Home() {
 
     try {
       // 2. Perform the API call
-      const data = await sendMessageToApi(messageToSend, selectedMode);
+      const data = await sendMessageToApi(message, selectedMode);
+      console.log('Data received in page.tsx:', data);
 
       // 3. Handle side-effects from the response
       if (data.desktop_actions && Array.isArray(data.desktop_actions)) {
