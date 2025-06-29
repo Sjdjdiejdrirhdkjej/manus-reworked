@@ -89,12 +89,12 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: '#0D1B2A' }}>
+    <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="header">
         <h1>Manus</h1>
       </header>
-      <div className="flex flex-1">
-        <div className="flex flex-col flex-1">
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 h-full">
           {messages.length > 0 ? (
             <ChatMessageList
               messages={messages}
@@ -118,7 +118,7 @@ export default function Home() {
             isSidebarOpen={desktopState.isSidebarOpen}
             handleClearChat={handleClearChat}
           />
-        </div> {/* End of flex-col flex-1 */}
+        </div>
         <AgentDesktopSidebar desktopState={desktopState} dispatch={dispatch} />
       </div>
     </div>

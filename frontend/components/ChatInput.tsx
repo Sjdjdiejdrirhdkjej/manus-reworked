@@ -25,7 +25,7 @@ const ClearIcon = () => (
 
 const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(
   (
-    { input, setInput, handleSend, isLoading, selectedMode, setSelectedMode, isSidebarOpen, handleClearChat, inputId },
+    { input, setInput, handleSend, isLoading, isSidebarOpen, handleClearChat, inputId },
     ref
   ) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -5,15 +5,8 @@
 @import './chat.css';
 
 :root {
-  --background: #ffffff;
-  --foreground: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ffffff;
-  }
+  --background: #f8f9fa;
+  --foreground: #343a40;
 }
 
 body {

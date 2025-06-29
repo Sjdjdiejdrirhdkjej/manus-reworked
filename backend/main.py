@@ -1,15 +1,16 @@
 import os
+import json
+from typing import Optional, List
+
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from mistralai import Mistral
+from scrapybara import Scrapybara
 
 # Load environment variables from .env file
 load_dotenv()
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, List
-import json
-from mistralai import Mistral
-from scrapybara import Scrapybara
 
 app = FastAPI()
 
@@ -66,8 +67,6 @@ async def chat(message: ChatMessage):
             return ChatResponse(response="Mistral AI is not configured for chat mode. Please set the MISTRAL_API_KEY environment variable.")
         else:
             return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
-
-    
 
     try:
         # Define tools for Scrapybara
@@ -315,19 +314,19 @@ async def chat(message: ChatMessage):
             if not scrapybara_client:
                 return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
             tools = scrapybara_tools
-            system_message = """You are a high-effort AI assistant. Your goal is to provide comprehensive and well-reasoned answers. You have access to web browsing and virtual desktop tools to help you gather information and perform tasks.
+            system_message = '''You are a high-effort AI assistant. Your goal is to provide comprehensive and well-reasoned answers. You have access to web browsing and virtual desktop tools to help you gather information and perform tasks.
 First, think step-by-step about the user's query inside a <thinking> XML tag. This is your scratchpad to reason about the problem.
 Then, provide your final, user-facing answer inside an <answer> XML tag.
-The user will only see the content of the <answer> tag. The <thinking> tag is for your internal process."""
+The user will only see the content of the <answer> tag. The <thinking> tag is for your internal process.'''
         elif message.mode == "daytona":
             model_to_use = "mistral-large-latest"
             if not scrapybara_client:
                 return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
 
-            system_message = """You are Manus, a powerful AI assistant. You have direct control over a web browser to perform tasks for the user.
+            system_message = '''You are Manus, a powerful AI assistant. You have direct control over a web browser to perform tasks for the user.
 When the user asks for something that requires web access, you MUST use the provided tools to answer the request.
 Do not ask for permission. Do not explain what you are about to do. Just perform the action.
-For example, if the user asks "what's the weather in Paris?", you should use the tools to search for it and provide the answer."""
+For example, if the user asks "what's the weather in Paris?", you should use the tools to search for it and provide the answer.'''
             tools = scrapybara_tools
         else: # Default case for any other mode
             model_to_use = "mistral-large-latest"
@@ -357,7 +356,6 @@ For example, if the user asks "what's the weather in Paris?", you should use the
         response_message = chat_response.choices[0].message
         tools_used = []
         desktop_actions_list = [] # Initialize a list to collect all desktop actions
-        desktop_action = None
 
         # Handle tool calls with Scrapybara
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
@@ -365,7 +363,6 @@ For example, if the user asks "what's the weather in Paris?", you should use the
             desktop_actions_list = [] # Initialize a list to collect all desktop actions
             try:
                 # Start a new Scrapybara session
-                try:
                 print("Attempting to start Scrapybara session...")
                 session = scrapybara_client.start_ubuntu()
                 print("Scrapybara session started successfully.")
@@ -404,8 +401,7 @@ For example, if the user asks "what's the weather in Paris?", you should use the
                         elif tool_name == "list_files":
                             path = tool_args.get('path', '.')
                             output = session.execute_command(f"ls -F {path}")
-                            files = [f.strip() for f in output.split('
-') if f.strip()]
+                            files = [f.strip() for f in output.splitlines() if f.strip()]
                             result = f"Files in {path}:\n" + "\n".join(files)
                             current_desktop_action = {"type": tool_name, "args": tool_args, "result": result, "files": files}
                         elif tool_name == "get_page_title":

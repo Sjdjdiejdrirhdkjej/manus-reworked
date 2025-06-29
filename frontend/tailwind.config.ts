@@ -9,8 +9,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        background: "#f8f9fa",
+        foreground: "#343a40", // Darker gray for better contrast
+        primary: "#007bff",
+        "primary-hover": "#0056b3",
+        muted: "#6c757d",
+        "ai-bubble": "#e9ecef", // Light gray for AI message bubbles
+      },
+      keyframes: {
+        fadeIn: {
+          'from': { opacity: '0', transform: 'translateY(10px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        fadeIn: 'fadeIn 1s ease-in-out',
       },
     },
   },
