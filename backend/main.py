@@ -1,18 +1,19 @@
 import os
 import json
+import subprocess
+import shutil
 from typing import Optional, List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from mistralai import Mistral
-from scrapybara import Scrapybara
+
+app = FastAPI()
 
 # Load environment variables from .env file
 load_dotenv()
-
-app = FastAPI()
 
 # Add CORS middleware to allow frontend requests
 app.add_middleware(
@@ -29,21 +30,102 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Mistral client
-mistral_api_key = os.getenv("MISTRAL_API_KEY")
-if not mistral_api_key:
-    print("Warning: MISTRAL_API_KEY environment variable not set")
-    mistral_client = None
-else:
-    mistral_client = Mistral(api_key=mistral_api_key)
+# --- Tool Implementations (for file system and terminal) ---
 
-# Initialize Scrapybara client
-scrapybara_api_key = os.getenv("SCRAPYBARA_API_KEY")
-if not scrapybara_api_key:
-    print("Warning: SCRAPYBARA_API_KEY environment variable not set")
-    scrapybara_client = None
-else:
-    scrapybara_client = Scrapybara(api_key=scrapybara_api_key)
+# Base directory for file operations in Vercel's ephemeral file system
+VERCEL_TMP_DIR = "/tmp"
+
+def _get_full_path(file_name: str) -> str:
+    """Helper to get the full path within the Vercel /tmp directory."""
+    return os.path.join(VERCEL_TMP_DIR, file_name)
+
+def execute_command(command: str):
+    try:
+        # Commands are executed in the environment where the function runs
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
+        return result.stdout.strip() or "Command executed successfully."
+    except subprocess.CalledProcessError as e:
+        return f"Command failed with error: {e.stderr.strip()}"
+    except Exception as e:
+        return f"Error executing command: {e}"
+
+def write_to_file(file_name: str, content: str):
+    full_path = _get_full_path(file_name)
+    try:
+        # Ensure directory exists before writing
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, 'w') as f:
+            f.write(content)
+        return f"Content written to {file_name}"
+    except Exception as e:
+        return f"Error writing to file {file_name}: {e}"
+
+def read_file(file_name: str, line_start: Optional[int] = None, line_end: Optional[int] = None):
+    full_path = _get_full_path(file_name)
+    try:
+        with open(full_path, 'r') as f:
+            lines = f.readlines()
+            if line_start is not None and line_end is not None:
+                # Adjust for 0-based indexing
+                content = "".join(lines[line_start - 1:line_end])
+            else:
+                content = "".join(lines)
+        return {"result": f"Read content from {file_name}", "content": content}
+    except FileNotFoundError:
+        return f"Error: File not found: {file_name}"
+    except Exception as e:
+        return f"Error reading file {file_name}: {e}"
+
+def list_files(path: str = '.'):
+    # If path is relative, make it relative to VERCEL_TMP_DIR
+    if not os.path.isabs(path):
+        full_path = _get_full_path(path)
+    else:
+        full_path = path
+
+    try:
+        files = []
+        for entry in os.listdir(full_path):
+            entry_full_path = os.path.join(full_path, entry)
+            if os.path.isdir(entry_full_path):
+                files.append(entry + '/') # Indicate directory
+            else:
+                files.append(entry)
+        return f"Files in {path} (within /tmp):\n" + "\n".join(files)
+    except FileNotFoundError:
+        return f"Error: Directory not found: {path}"
+    except Exception as e:
+        return f"Error listing files in {path}: {e}"
+
+def create_directory(path: str):
+    full_path = _get_full_path(path)
+    try:
+        os.makedirs(full_path, exist_ok=True)
+        return f"Directory created: {path}"
+    except Exception as e:
+        return f"Error creating directory {path}: {e}"
+
+def move_file_or_directory(source_path: str, destination_path: str):
+    full_source_path = _get_full_path(source_path)
+    full_destination_path = _get_full_path(destination_path)
+    try:
+        shutil.move(full_source_path, full_destination_path)
+        return f"Moved {source_path} to {destination_path}"
+    except FileNotFoundError:
+        return f"Error: Source path not found: {source_path}"
+    except Exception as e:
+        return f"Error moving {source_path} to {destination_path}: {e}"
+
+def create_file(file_name: str):
+    full_path = _get_full_path(file_name)
+    try:
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, 'a') as f:
+            pass # Just create an empty file
+        return f"File created: {file_name}"
+    except Exception as e:
+        return f"Error creating file {file_name}: {e}"
+
 
 class ChatMessage(BaseModel):
     message: str
@@ -60,123 +142,21 @@ async def root():
     return {"message": "Hello World"}
 
 @app.post("/chat")
-async def chat(message: ChatMessage):
+async def chat(message: ChatMessage, x_mistral_api_key: Optional[str] = Header(None)):
     print(f"Received message: {message.message}, Mode: {message.mode}")
-    if not mistral_client:
-        if message.mode == "chat":
-            return ChatResponse(response="Mistral AI is not configured for chat mode. Please set the MISTRAL_API_KEY environment variable.")
-        else:
-            return ChatResponse(response="Mistral AI is not configured. Please set the MISTRAL_API_KEY environment variable.")
+    
+    mistral_api_key = x_mistral_api_key
+    if not mistral_api_key:
+        mistral_api_key = os.getenv("MISTRAL_API_KEY")
+
+    if not mistral_api_key:
+        raise HTTPException(status_code=401, detail="Mistral API Key is missing. Please provide it in the X-Mistral-API-Key header or as a MISTRAL_API_KEY environment variable.")
+
+    mistral_client = Mistral(api_key=mistral_api_key)
 
     try:
-        # Define tools for Scrapybara
-        scrapybara_tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "go_to",
-                    "description": "Navigate to a specific URL.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "url": {"type": "string", "description": "URL to navigate to"}
-                        },
-                        "required": ["url"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "click_element",
-                    "description": "Click on an element using CSS selector",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "selector": {"type": "string", "description": "CSS selector of element to click"}
-                        },
-                        "required": ["selector"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "type_text",
-                    "description": "Type text into an input field",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "selector": {"type": "string", "description": "CSS selector of input field"},
-                            "text": {"type": "string", "description": "Text to type"}
-                        },
-                        "required": ["selector", "text"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "scroll_page",
-                    "description": "Scroll the page",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "direction": {"type": "string", "description": "Direction to scroll (up/down)"},
-                            "amount": {"type": "integer", "description": "Amount to scroll in pixels"}
-                        },
-                        "required": ["direction", "amount"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "take_screenshot",
-                    "description": "Take a screenshot of the current page",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "extract_text",
-                    "description": "Extract text from elements matching the selector",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "selector": {"type": "string", "description": "CSS selector to extract text from"}
-                        },
-                        "required": ["selector"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "extract_links",
-                    "description": "Extract all links from the current page",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_page_title",
-                    "description": "Get the current page title",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
-            },
-            # New desktop-like tools to align with page.tsx
+        # Define tools for the model (only file system and terminal tools)
+        model_tools = [
             {
                 "type": "function",
                 "function": {
@@ -278,20 +258,6 @@ async def chat(message: ChatMessage):
                         "required": ["file_name"]
                     }
                 }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "search_google",
-                    "description": "Perform a Google search for a given query.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {"type": "string", "description": "The search query"}
-                        },
-                        "required": ["query"]
-                    }
-                }
             }
         ]
 
@@ -305,29 +271,16 @@ async def chat(message: ChatMessage):
             model_to_use = "mistral-large-latest"
         elif message.mode == "cua":
             model_to_use = "devstral-small-latest"
-            if not scrapybara_client:
-                return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
-            tools = scrapybara_tools
-            system_message = "You are a helpful AI assistant. You have access to a web browser, a virtual terminal, and a file system. Use these tools to answer user requests that require web access, command execution, or file management."
+            tools = model_tools
+            system_message = "You are a helpful AI assistant. You have access to a virtual terminal, and a file system. Use these tools to answer user requests that require command execution, or file management."
         elif message.mode == "high-effort":
             model_to_use = "magistral-medium-latest"
-            if not scrapybara_client:
-                return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
-            tools = scrapybara_tools
-            system_message = '''You are a high-effort AI assistant. Your goal is to provide comprehensive and well-reasoned answers. You have access to web browsing and virtual desktop tools to help you gather information and perform tasks.
-First, think step-by-step about the user's query inside a <thinking> XML tag. This is your scratchpad to reason about the problem.
-Then, provide your final, user-facing answer inside an <answer> XML tag.
-The user will only see the content of the <answer> tag. The <thinking> tag is for your internal process.'''
+            tools = model_tools
+            system_message = '''You are a high-effort AI assistant. Your goal is to provide comprehensive and well-reasoned answers. You have access to virtual desktop tools to help you gather information and perform tasks.\nFirst, think step-by-step about the user's query inside a <thinking> XML tag. This is your scratchpad to reason about the problem.\nThen, provide your final, user-facing answer inside an <answer> XML tag.\nThe user will only see the content of the <answer> tag. The <thinking> tag is for your internal process.'''
         elif message.mode == "daytona":
             model_to_use = "mistral-large-latest"
-            if not scrapybara_client:
-                return ChatResponse(response="Scrapybara is not configured. Please set the SCRAPYBARA_API_KEY environment variable.")
-
-            system_message = '''You are Manus, a powerful AI assistant. You have direct control over a web browser to perform tasks for the user.
-When the user asks for something that requires web access, you MUST use the provided tools to answer the request.
-Do not ask for permission. Do not explain what you are about to do. Just perform the action.
-For example, if the user asks "what's the weather in Paris?", you should use the tools to search for it and provide the answer.'''
-            tools = scrapybara_tools
+            system_message = '''You are Manus, a powerful AI assistant. You have direct control over a virtual terminal and file system to perform tasks for the user.\nWhen the user asks for something that requires command execution or file management, you MUST use the provided tools to answer the request.\nDo not ask for permission. Do not explain what you are about to do. Just perform the action.'''
+            tools = model_tools
         else: # Default case for any other mode
             model_to_use = "mistral-large-latest"
 
@@ -339,125 +292,47 @@ For example, if the user asks "what's the weather in Paris?", you should use the
 
         # Make the API call
         print(f"Making Mistral API call with model: {model_to_use}, tools: {bool(tools)}")
-        try:
-            print(f"Attempting Mistral API call with model: {model_to_use}")
-            chat_response = mistral_client.chat.complete(
-                model=model_to_use,
-                messages=messages,
-                tools=tools if tools else None,
-                tool_choice="auto" if tools else None
-            )
-            print("Mistral API call completed.")
-            print("Mistral API call successful.")
-        except Exception as e:
-            print(f"Error during Mistral API call: {e}")
-            raise # Re-raise the exception to be caught by the outer try-except
+        chat_response = mistral_client.chat.complete(
+            model=model_to_use,
+            messages=messages,
+            tools=tools if tools else None,
+            tool_choice="auto" if tools else None
+        )
+        print("Mistral API call completed.")
+        print("Mistral API call successful.")
 
         response_message = chat_response.choices[0].message
         tools_used = []
         desktop_actions_list = [] # Initialize a list to collect all desktop actions
 
-        # Handle tool calls with Scrapybara
+        # Handle tool calls
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
-            session = None
-            desktop_actions_list = [] # Initialize a list to collect all desktop actions
-            try:
-                # Start a new Scrapybara session
-                print("Attempting to start Scrapybara session...")
-                session = scrapybara_client.start_ubuntu()
-                print("Scrapybara session started successfully.")
-                
-                for tool_call in response_message.tool_calls:
-                    tool_name = tool_call.function.name
-                    tool_args = json.loads(tool_call.function.arguments)
-                    tools_used.append({"name": tool_name, "args": tool_args})
-                    current_desktop_action = None # Temporary variable for the current action
+            for tool_call in response_message.tool_calls:
+                tool_name = tool_call.function.name
+                tool_args = json.loads(tool_call.function.arguments)
+                tools_used.append({"name": tool_name, "args": tool_args})
+                current_desktop_action = None # Temporary variable for the current action
 
-                    # Execute Scrapybara actions with proper session handling
-                    try:
-                        if tool_name == "go_to":
-                            session.navigate(tool_args['url'])
-                            result = f"Navigated to {tool_args['url']}"
-                        elif tool_name == "click_element":
-                            session.click(tool_args['selector'], timeout=10) # Added timeout for robustness
-                            result = f"Clicked element: {tool_args['selector']}"
-                        elif tool_name == "type_text":
-                            session.type(tool_args['selector'], tool_args['text'])
-                            result = f"Typed '{tool_args['text']}' into {tool_args['selector']}"
-                        elif tool_name == "scroll_page":
-                            direction = 1 if tool_args['direction'].lower() == 'down' else -1
-                            session.scroll(direction * tool_args['amount'], timeout=10) # Added timeout
-                            result = f"Scrolled {tool_args['direction']} by {tool_args['amount']} pixels"
-                        elif tool_name == "take_screenshot":
-                            screenshot_data = session.screenshot()
-                            result = "Screenshot taken successfully"
-                            current_desktop_action = {"type": tool_name, "args": tool_args, "result": result, "screenshot": screenshot_data}
-                        elif tool_name == "extract_text":
-                            text_content = session.get_text(tool_args['selector'])
-                            result = f"Extracted text: {text_content[:200]}..." if len(text_content) > 200 else f"Extracted text: {text_content}"
-                        elif tool_name == "extract_links":
-                            links = session.get_links()
-                            result = f"Found {len(links)} links on the page"
-                        elif tool_name == "list_files":
-                            path = tool_args.get('path', '.')
-                            output = session.execute_command(f"ls -F {path}")
-                            files = [f.strip() for f in output.splitlines() if f.strip()]
-                            result = f"Files in {path}:\n" + "\n".join(files)
-                            current_desktop_action = {"type": tool_name, "args": tool_args, "result": result, "files": files}
-                        elif tool_name == "get_page_title":
-                            title = session.get_title()
-                            result = f"Page title: {title}"
-                        elif tool_name == "execute_command":
-                            output = session.execute_command(tool_args['command'])
-                            result = output
-                        elif tool_name == "write_to_file":
-                            session.write_file(tool_args['file_name'], tool_args['content'], timeout=10) # Added timeout
-                            result = f"Content written to {tool_args['file_name']}"
-                        elif tool_name == "read_file":
-                            content = session.read_file(tool_args['file_name'], line_start=tool_args.get('line_start'), line_end=tool_args.get('line_end'), timeout=10) # Added timeout
-                            result = f"Read content from {tool_args['file_name']}"
-                            current_desktop_action = {"type": tool_name, "args": tool_args, "result": result, "content": content}
-                        elif tool_name == "create_file":
-                            session.write_file(tool_args['file_name'], "", timeout=10) # Create an empty file, added timeout
-                            result = f"File created: {tool_args['file_name']}"
-                            current_desktop_action = {"type": tool_name, "args": tool_args, "result": result, "content": ""}
-                        elif tool_name == "search_google":
-                            session.navigate(f"https://www.google.com/search?q={tool_args['query']}")
-                            result = f"Performed Google search for: {tool_args['query']}"
-                        elif tool_name == "create_directory":
-                            session.create_directory(tool_args['path'], timeout=10) # Added timeout for robustness
-                            result = f"Directory created: {tool_args['path']}"
-                        elif tool_name == "move_file_or_directory":
-                            session.move(tool_args['source_path'], tool_args['destination_path'], timeout=10)
-                            result = f"Moved {tool_args['source_path']} to {tool_args['destination_path']}"
-                        else:
-                            result = f"Unknown tool: {tool_name}"
+                try:
+                    # Dynamically call the tool function
+                    tool_function = globals().get(tool_name)
+                    if tool_function and callable(tool_function):
+                        result = tool_function(**tool_args)
+                    else:
+                        result = f"Unknown tool: {tool_name}"
 
-                        # If current_desktop_action was not set by specific tools (like screenshot, read_file, create_file)
-                        # then create a generic one.
-                        if current_desktop_action is None:
-                            current_desktop_action = {"type": tool_name, "args": tool_args, "result": result}
-                        
-                        desktop_actions_list.append(current_desktop_action)
-                    except Exception as e:
-                        desktop_actions_list.append({"type": tool_name, "args": tool_args, "error": str(e)})
-                        
-            except Exception as e:
-                desktop_actions_list.append({"type": "session_error", "args": {}, "error": f"Failed to start Scrapybara session: {str(e)}"})
-            finally:
-                # Clean up session
-                if session:
-                    try:
-                        session.close()
-                        print("Scrapybara session closed successfully.")
-                    except Exception as close_error:
-                        print(f"Warning: Failed to close Scrapybara session: {close_error}")
+                    if isinstance(result, dict) and "content" in result:
+                        current_desktop_action = {"type": tool_name, "args": tool_args, "result": result["result"], "content": result["content"]}
+                    else:
+                        current_desktop_action = {"type": tool_name, "args": tool_args, "result": result}
+                    
+                    desktop_actions_list.append(current_desktop_action)
+                except Exception as e:
+                    desktop_actions_list.append({"type": tool_name, "args": tool_args, "error": str(e)})
 
         response_text = response_message.content if response_message.content is not None else ""
         if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
             response_text = response_text or "Action completed."
-            # If there were tool calls, and no explicit text response,
-            # we might want to indicate that actions were performed.
 
         # Parse thinking and answer for high-effort mode
         if message.mode == "high-effort" and response_text:

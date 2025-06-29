@@ -1,13 +1,19 @@
 import { Mode } from "@/app/types";
 
-export async function sendMessageToApi(message: string, mode: Mode) {
+export async function sendMessageToApi(message: string, mode: Mode, mistralApiKey: string, mcpUrl: string) {
   console.log('Sending message to API:', { message, mode });
+  const baseUrl = mcpUrl || ''; // Use mcpUrl if provided, otherwise empty string for relative path
   try {
-    const response = await fetch('http://localhost:8000/chat', {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (mistralApiKey) {
+      headers['X-Mistral-API-Key'] = mistralApiKey;
+    }
+
+    const response = await fetch(`${baseUrl}/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headers,
       body: JSON.stringify({ message, mode }),
     });
 
@@ -28,9 +34,10 @@ export async function sendMessageToApi(message: string, mode: Mode) {
   }
 }
 
-export async function checkBackendStatus() {
+export async function checkBackendStatus(mcpUrl: string) {
+  const baseUrl = mcpUrl || ''; // Use mcpUrl if provided, otherwise empty string for relative path
   try {
-    const response = await fetch('http://localhost:8000/');
+    const response = await fetch(`${baseUrl}/`);
     return response.ok;
   } catch (error) {
     return false;

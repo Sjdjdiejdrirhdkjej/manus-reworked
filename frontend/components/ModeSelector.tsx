@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -7,6 +6,7 @@ import type { Mode } from '@/app/types';
 interface ModeSelectorProps {
   selectedMode: Mode;
   setSelectedMode: (mode: Mode) => void;
+  desktopEnabled: boolean; // New prop
 }
 
 // Icons for the mode selector
@@ -34,15 +34,22 @@ const MODES: { id: Mode; label: string; icon: JSX.Element }[] = [
   { id: 'high-effort', label: 'High-Effort', icon: <HighEffortAgentIcon /> },
 ];
 
-const ModeSelector: React.FC<ModeSelectorProps> = ({ selectedMode, setSelectedMode }) => {
+const ModeSelector: React.FC<ModeSelectorProps> = ({ selectedMode, setSelectedMode, desktopEnabled }) => {
   return (
     <div className="mode-selector">
       {MODES.map((mode) => (
         <button
           key={mode.id}
-          onClick={() => setSelectedMode(mode.id)}
-          className={`mode-option group ${selectedMode === mode.id ? 'active' : ''}`}
+          onClick={() => {
+            if (desktopEnabled || mode.id === 'chat') {
+              setSelectedMode(mode.id);
+            }
+          }}
+          className={`mode-option group ${selectedMode === mode.id ? 'active' : ''} ${
+            !desktopEnabled && mode.id !== 'chat' ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
           aria-label={mode.label}
+          disabled={!desktopEnabled && mode.id !== 'chat'} // Disable if desktop is not enabled and it's not chat mode
         >
           {mode.icon}
           <span className="mode-tooltip">{mode.label}</span>

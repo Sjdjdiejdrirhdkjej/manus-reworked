@@ -12,7 +12,7 @@ const AgentDesktopSidebar: React.FC<AgentDesktopSidebarProps> = ({
   desktopState,
   dispatch,
 }) => {
-  const { isSidebarOpen, currentView, terminal, browser, files, activities } = desktopState;
+  const { isSidebarOpen, currentView, terminal, files, activities } = desktopState;
 
   const handleViewChange = (view: AgentDesktopState['currentView']) => {
     dispatch({ type: 'SET_VIEW', payload: view });
@@ -53,12 +53,6 @@ const AgentDesktopSidebar: React.FC<AgentDesktopSidebarProps> = ({
           Terminal
         </button>
         <button
-          onClick={() => handleViewChange('browser')}
-          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium ${currentView === 'browser' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-        >
-          Browser
-        </button>
-        <button
           onClick={() => handleViewChange('files')}
           className={`flex-1 py-2 px-3 rounded-md text-sm font-medium ${currentView === 'files' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
         >
@@ -72,22 +66,6 @@ const AgentDesktopSidebar: React.FC<AgentDesktopSidebarProps> = ({
             {terminal.output.map((line, index) => (
               <p key={index}>{line}</p>
             ))}
-          </div>
-        )}
-        {currentView === 'browser' && (
-          <div className="h-full flex flex-col">
-            <p className="text-sm text-gray-600 mb-2">URL: <span className="font-mono text-blue-600">{browser.url}</span></p>
-            {browser.screenshot && (
-              <div className="flex-1 relative">
-                <Image
-                  src={browser.screenshot}
-                  alt="Browser Screenshot"
-                  layout="fill"
-                  objectFit="contain"
-                  className="rounded-md border border-gray-200"
-                />
-              </div>
-            )}
           </div>
         )}
         {currentView === 'files' && (

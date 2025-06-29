@@ -1,15 +1,12 @@
 'use client';
 
 import React, { forwardRef } from 'react';
-import type { Mode } from '@/app/types';
 
 interface ChatInputProps {
   input: string;
   setInput: (value: string) => void;
   handleSend: (message: string) => void;
   isLoading: boolean;
-  selectedMode: Mode;
-  setSelectedMode: (mode: Mode) => void;
   isSidebarOpen: boolean;
   handleClearChat: () => void;
   inputId: string;

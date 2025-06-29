@@ -25,13 +25,9 @@ export type FileNode = {
 export type AgentDesktopState = {
   isSidebarOpen: boolean;
   activities: Activity[];
-  currentView: 'terminal' | 'browser' | 'files';
+  currentView: 'terminal' | 'files';
   terminal: {
     output: string[];
-  };
-  browser: {
-    url: string;
-    screenshot?: string;
   };
   files: {
     currentFile: FileData | null;
@@ -51,9 +47,6 @@ const initialState: AgentDesktopState = {
   currentView: 'terminal',
   terminal: {
     output: ['Welcome to the virtual terminal.'],
-  },
-  browser: {
-    url: 'https://www.google.com',
   },
   files: {
     currentFile: null,
@@ -93,17 +86,6 @@ function agentDesktopReducer(state: AgentDesktopState, action: AgentDesktopActio
         case 'write_to_file':
         case 'create_file':
           return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.file_name, content: payload.args.content || '' } } };
-        case 'go_to':
-        case 'search_google':
-          return { ...newState, currentView: 'browser', browser: { ...newState.browser, url: payload.args.url || `https://www.google.com/search?q=${payload.args.query}` } };
-        case 'take_screenshot':
-          return { ...newState, currentView: 'browser', browser: { ...newState.browser, screenshot: payload.screenshot } };
-        case 'click_element':
-        case 'type_text':
-        case 'scroll_page':
-        case 'extract_text':
-        case 'extract_links':
-        case 'get_page_title':
         case 'create_directory':
         case 'move_file_or_directory':
           // These actions primarily result in an activity log entry.

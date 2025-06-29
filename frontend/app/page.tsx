@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useId } from 'react';
+import React, { useState, useRef, useId, useEffect } from 'react';
 
 import type { Message, Mode } from '@/app/types';
 import ChatMessageList from '@/components/ChatMessageList';
 import ChatInput from '@/components/ChatInput';
 import ModeSelector from '@/components/ModeSelector';
+import SettingsModal from '@/components/SettingsModal'; // Import the new settings modal
 import './chat.css';
 import { useAgentDesktop } from '@/hooks/useAgentDesktop';
 import AgentDesktopSidebar from '@/components/AgentDesktopSidebar';
@@ -20,11 +21,18 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMode, setSelectedMode] = useState<Mode>('chat');
   const [openThinkingId, setOpenThinkingId] = useState<string | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false); // State for settings modal visibility
+  const [mistralApiKey, setMistralApiKey] = useLocalStorage<string>('mistral-api-key', '');
+  const [mcpUrl, setMcpUrl] = useLocalStorage<string>('mcp-url', '');
+
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
 
   const [desktopState, dispatch] = useAgentDesktop();
-  // chatContainerRef and its useEffect are no longer needed as ChatMessageList manages its own scrolling
+
+  // Determine if desktop features are enabled (i.e., MCP URL is provided)
+  const desktopEnabled = !!mcpUrl; // Desktop is enabled if mcpUrl is not empty
+
   const handleSend = async (message: string) => {
     const messageToSend = message;
     if (messageToSend.trim() === '') return;
@@ -42,7 +50,7 @@ export default function Home() {
 
     try {
       // 2. Perform the API call
-      const data = await sendMessageToApi(message, selectedMode);
+      const data = await sendMessageToApi(message, selectedMode, mistralApiKey, mcpUrl); // Pass API key and MCP URL
       console.log('Data received in page.tsx:', data);
 
       // 3. Handle side-effects from the response
@@ -88,10 +96,30 @@ export default function Home() {
     handleSend(prompt);
   };
 
+  const handleSaveSettings = (key: string, url: string) => {
+    setMistralApiKey(key);
+    setMcpUrl(url);
+  };
+
+  // Wrapper for setSelectedMode to enforce chat mode if desktop is not enabled
+  const handleSetSelectedMode = (mode: Mode) => {
+    if (desktopEnabled || mode === 'chat') {
+      setSelectedMode(mode);
+    } else {
+      setSelectedMode('chat'); // Force chat mode if desktop is not enabled
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="header">
+      <header className="header flex justify-between items-center">
         <h1>Manus</h1>
+        <button
+          onClick={() => setShowSettingsModal(true)}
+          className="px-3 py-1 bg-primary text-white rounded-md text-sm hover:bg-primary-hover transition-colors duration-200"
+        >
+          Settings
+        </button>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 h-full">
@@ -105,7 +133,11 @@ export default function Home() {
           ) : (
             <WelcomeScreen onExampleClick={handleExamplePrompt} />
           )}
-          <ModeSelector selectedMode={selectedMode} setSelectedMode={setSelectedMode} />
+          <ModeSelector 
+            selectedMode={selectedMode} 
+            setSelectedMode={handleSetSelectedMode} // Use the wrapped function
+            desktopEnabled={desktopEnabled} // Pass desktopEnabled prop
+          />
           <ChatInput
             ref={inputRef}
             inputId={inputId}
@@ -113,14 +145,21 @@ export default function Home() {
             setInput={setInput}
             handleSend={() => handleSend(input)}
             isLoading={isLoading}
-            selectedMode={selectedMode}
-            setSelectedMode={setSelectedMode}
             isSidebarOpen={desktopState.isSidebarOpen}
             handleClearChat={handleClearChat}
           />
         </div>
         <AgentDesktopSidebar desktopState={desktopState} dispatch={dispatch} />
       </div>
+      {showSettingsModal && (
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          onSave={handleSaveSettings}
+          initialMistralApiKey={mistralApiKey}
+          initialMcpUrl={mcpUrl}
+        />
+      )}
     </div>
   );
 }
