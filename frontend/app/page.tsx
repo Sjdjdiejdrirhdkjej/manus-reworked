@@ -6,11 +6,11 @@ import type { Message, Mode } from '@/app/types';
 import ChatMessageList from '@/components/ChatMessageList';
 import ChatInput from '@/components/ChatInput';
 import ModeSelector from '@/components/ModeSelector';
-import SettingsModal from '@/components/SettingsModal'; // Import the new settings modal
+import SettingsModal from '@/components/SettingsModal';
 import './chat.css';
 import { useAgentDesktop } from '@/hooks/useAgentDesktop';
 import AgentDesktopSidebar from '@/components/AgentDesktopSidebar';
-import { sendMessageToApi } from '@/utils/api';
+import { sendMessageToApi, executeCommand, writeToFile, readFile, listFiles, createDirectory, moveFileOrDirectory, createFile } from '@/utils/api';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import useLocalStorage from '@/hooks/useLocalStorage';
 
@@ -21,7 +21,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMode, setSelectedMode] = useState<Mode>('chat');
   const [openThinkingId, setOpenThinkingId] = useState<string | null>(null);
-  const [showSettingsModal, setShowSettingsModal] = useState(false); // State for settings modal visibility
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [mistralApiKey, setMistralApiKey] = useLocalStorage<string>('mistral-api-key', '');
   const [mcpUrl, setMcpUrl] = useLocalStorage<string>('mcp-url', '');
 
@@ -30,14 +30,12 @@ export default function Home() {
 
   const [desktopState, dispatch] = useAgentDesktop();
 
-  // Determine if desktop features are enabled (i.e., MCP URL is provided)
-  const desktopEnabled = !!mcpUrl; // Desktop is enabled if mcpUrl is not empty
+  const desktopEnabled = !!mcpUrl;
 
   const handleSend = async (message: string) => {
     const messageToSend = message;
     if (messageToSend.trim() === '') return;
 
-    // 1. Optimistically update UI with the user's message
     const userMessage: Message = {
       id: crypto.randomUUID(),
       text: message,
@@ -45,24 +43,48 @@ export default function Home() {
     };
     setMessages((prevMessages) => [...prevMessages, userMessage]);
 
-    
     setIsLoading(true);
 
     try {
-      // 2. Perform the API call
-      const data = await sendMessageToApi(message, selectedMode, mistralApiKey, mcpUrl); // Pass API key and MCP URL
+      const data = await sendMessageToApi(message, selectedMode, mistralApiKey);
       console.log('Data received in page.tsx:', data);
 
-      // 3. Handle side-effects from the response
       if (data.desktop_actions && Array.isArray(data.desktop_actions)) {
-        data.desktop_actions.forEach((action: unknown) => {
-          if (typeof action === 'object' && action !== null && 'type' in action) {
-            dispatch({ type: 'API_ACTION', payload: action });
+        for (const action of data.desktop_actions) {
+          let result: any;
+          if (desktopEnabled) {
+            switch (action.type) {
+              case 'execute_command':
+                result = await executeCommand(mcpUrl, action.args.command);
+                break;
+              case 'write_to_file':
+                result = await writeToFile(mcpUrl, action.args.file_name, action.args.content);
+                break;
+              case 'read_file':
+                result = await readFile(mcpUrl, action.args.file_name, action.args.line_start, action.args.line_end);
+                break;
+              case 'list_files':
+                result = await listFiles(mcpUrl, action.args.path);
+                break;
+              case 'create_directory':
+                result = await createDirectory(mcpUrl, action.args.path);
+                break;
+              case 'move_file_or_directory':
+                result = await moveFileOrDirectory(mcpUrl, action.args.source_path, action.args.destination_path);
+                break;
+              case 'create_file':
+                result = await createFile(mcpUrl, action.args.file_name);
+                break;
+              default:
+                result = { error: `Unknown desktop action type: ${action.type}` };
+            }
+          } else {
+            result = { error: `Desktop features are not enabled. Please provide an MCP Server URL in settings.` };
           }
-        });
+          dispatch({ type: 'API_ACTION', payload: { ...action, result: result.result || result.error, content: result.content } });
+        }
       }
 
-      // 4. Update UI with the successful AI response
       const aiMessage: Message = {
         id: crypto.randomUUID(),
         text: data.response,
@@ -71,9 +93,7 @@ export default function Home() {
       };
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
     } catch (error) {
-      // 5. Update UI with a descriptive error message
       console.error('Failed to send message:', error);
-      // Log the full error object for debugging
       console.log('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -82,7 +102,6 @@ export default function Home() {
       };
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
     } finally {
-      // 6. Ensure loading state is always reset
       setIsLoading(false);
     }
   };
@@ -101,12 +120,11 @@ export default function Home() {
     setMcpUrl(url);
   };
 
-  // Wrapper for setSelectedMode to enforce chat mode if desktop is not enabled
   const handleSetSelectedMode = (mode: Mode) => {
     if (desktopEnabled || mode === 'chat') {
       setSelectedMode(mode);
     } else {
-      setSelectedMode('chat'); // Force chat mode if desktop is not enabled
+      setSelectedMode('chat');
     }
   };
 
@@ -135,8 +153,8 @@ export default function Home() {
           )}
           <ModeSelector 
             selectedMode={selectedMode} 
-            setSelectedMode={handleSetSelectedMode} // Use the wrapped function
-            desktopEnabled={desktopEnabled} // Pass desktopEnabled prop
+            setSelectedMode={handleSetSelectedMode}
+            desktopEnabled={desktopEnabled}
           />
           <ChatInput
             ref={inputRef}

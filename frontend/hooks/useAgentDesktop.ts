@@ -80,9 +80,11 @@ function agentDesktopReducer(state: AgentDesktopState, action: AgentDesktopActio
         case 'execute_command':
           return { ...newState, currentView: 'terminal', terminal: { ...newState.terminal, output: [...newState.terminal.output, `$ ${payload.args.command}`, payload.result] } };
         case 'list_files':
-          return { ...newState, currentView: 'files', files: { ...newState.files, fileTree: payload.files } };
+          // Assuming payload.result for list_files contains the file list string
+          // and payload.files (if available) contains structured file data
+          return { ...newState, currentView: 'files', files: { ...newState.files, fileTree: payload.files || [] } };
         case 'read_file':
-          return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.file_name, content: payload.content } } };
+          return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.file_name, content: payload.content || '' } } };
         case 'write_to_file':
         case 'create_file':
           return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.file_name, content: payload.args.content || '' } } };

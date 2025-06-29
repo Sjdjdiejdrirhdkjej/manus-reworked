@@ -1,8 +1,7 @@
 import { Mode } from "@/app/types";
 
-export async function sendMessageToApi(message: string, mode: Mode, mistralApiKey: string, mcpUrl: string) {
+export async function sendMessageToApi(message: string, mode: Mode, mistralApiKey: string) {
   console.log('Sending message to API:', { message, mode });
-  const baseUrl = mcpUrl || ''; // Use mcpUrl if provided, otherwise empty string for relative path
   try {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -11,7 +10,8 @@ export async function sendMessageToApi(message: string, mode: Mode, mistralApiKe
       headers['X-Mistral-API-Key'] = mistralApiKey;
     }
 
-    const response = await fetch(`${baseUrl}/chat`, {
+    // This still goes to the main backend (AI service)
+    const response = await fetch(`/chat`, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({ message, mode }),
@@ -34,12 +34,71 @@ export async function sendMessageToApi(message: string, mode: Mode, mistralApiKe
   }
 }
 
-export async function checkBackendStatus(mcpUrl: string) {
-  const baseUrl = mcpUrl || ''; // Use mcpUrl if provided, otherwise empty string for relative path
+export async function checkBackendStatus() {
   try {
-    const response = await fetch(`${baseUrl}/`);
+    // This checks the main backend's root endpoint
+    const response = await fetch('/');
     return response.ok;
   } catch (error) {
     return false;
   }
+}
+
+// --- New functions for MCP Server interactions ---
+
+interface McpApiResponse {
+  result?: string;
+  content?: string;
+  error?: string;
+}
+
+async function callMcpApi(mcpUrl: string, endpoint: string, data: any): Promise<McpApiResponse> {
+  if (!mcpUrl) {
+    return { error: "MCP Server URL not provided." };
+  }
+  try {
+    const response = await fetch(`${mcpUrl}/${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { error: `MCP API Error: ${response.status} - ${errorText}` };
+    }
+    return await response.json();
+  } catch (error: any) {
+    return { error: `Failed to connect to MCP server: ${error.message}` };
+  }
+}
+
+export async function executeCommand(mcpUrl: string, command: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'execute_command', { command });
+}
+
+export async function writeToFile(mcpUrl: string, fileName: string, content: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'write_to_file', { file_name: fileName, content });
+}
+
+export async function readFile(mcpUrl: string, fileName: string, lineStart?: number, lineEnd?: number): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'read_file', { file_name: fileName, line_start: lineStart, line_end: lineEnd });
+}
+
+export async function listFiles(mcpUrl: string, path: string = '.'): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'list_files', { path });
+}
+
+export async function createDirectory(mcpUrl: string, path: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'create_directory', { path });
+}
+
+export async function moveFileOrDirectory(mcpUrl: string, sourcePath: string, destinationPath: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'move_file_or_directory', { source_path: sourcePath, destination_path: destinationPath });
+}
+
+export async function createFile(mcpUrl: string, fileName: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'create_file', { file_name: fileName });
 }
