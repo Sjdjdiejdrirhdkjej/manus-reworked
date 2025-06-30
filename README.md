@@ -33,7 +33,7 @@ This project has been updated to prepare for deployment on Vercel.
 4.  Run the backend server:
 
     ```bash
-    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    uvicorn main:app --host 0.0.0.0 --port 8001 --reload
     ```
 
 
@@ -52,7 +52,13 @@ This project has been updated to prepare for deployment on Vercel.
     npm install
     ```
 
-3.  Run the frontend development server:
+3.  Create a `.env.local` file in the `frontend/` directory and set the API URL:
+
+    ```
+    NEXT_PUBLIC_API_URL=http://localhost:8001
+    ```
+
+4.  Run the frontend development server:
 
     ```bash
     npm run dev
