@@ -10,7 +10,8 @@ import SettingsModal from '@/components/SettingsModal';
 import './chat.css';
 import { useAgentDesktop } from '@/hooks/useAgentDesktop';
 import AgentDesktopSidebar from '@/components/AgentDesktopSidebar';
-import { sendMessageToApi, executeCommand, writeToFile, readFile, listFiles, createDirectory, moveItem, deleteItem } from '@/utils/api';
+import { sendMessageToApi, executeCommand, writeToFile, readFile, listFiles, createDirectory, moveItem, deleteItem, checkMcpServerStatus } from '@/utils/api';
+import ConnectionStatus from '@/components/ConnectionStatus';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import useLocalStorage from '@/hooks/useLocalStorage';
 
@@ -24,6 +25,19 @@ export default function Home() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [mistralApiKey, setMistralApiKey] = useLocalStorage<string>('mistral-api-key', '');
   const [mcpUrl, setMcpUrl] = useLocalStorage<string>('mcp-url', process.env.NEXT_PUBLIC_MCP_SERVER_URL || '');
+  const [mcpConnectionStatus, setMcpConnectionStatus] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (mcpUrl) {
+        const isConnected = await checkMcpServerStatus(mcpUrl);
+        setMcpConnectionStatus(isConnected);
+      } else {
+        setMcpConnectionStatus(false);
+      }
+    };
+    checkStatus();
+  }, [mcpUrl]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
@@ -132,12 +146,15 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="header flex justify-between items-center">
         <h1>Manus</h1>
-        <button
-          onClick={() => setShowSettingsModal(true)}
-          className="px-3 py-1 bg-primary text-white rounded-md text-sm hover:bg-primary-hover transition-colors duration-200"
-        >
-          Settings
-        </button>
+        <div className="flex items-center space-x-4">
+          <ConnectionStatus isConnected={mcpConnectionStatus} label="MCP Server" />
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="px-3 py-1 bg-primary text-white rounded-md text-sm hover:bg-primary-hover transition-colors duration-200"
+          >
+            Settings
+          </button>
+        </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 h-full">

@@ -1,33 +1,21 @@
-'use client';
+import React from 'react';
+import { Icons } from './Icons';
 
-import React, { useState, useEffect } from 'react';
-import { checkBackendStatus } from '@/utils/api';
+interface ConnectionStatusProps {
+  isConnected: boolean;
+  label: string;
+}
 
-const ConnectionStatus: React.FC = () => {
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    const checkStatus = async () => {
-      const status = await checkBackendStatus();
-      setIsConnected(status);
-    };
-
-    checkStatus(); // Initial check
-    const interval = setInterval(checkStatus, 5000); // Check every 5 seconds
-
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, []);
-
+const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
+  isConnected,
+  label,
+}) => {
   return (
-    <div style={{ display: 'flex', alignItems: 'center' }}>
-      <div style={{
-        width: '10px',
-        height: '10px',
-        borderRadius: '50%',
-        backgroundColor: isConnected ? 'green' : 'red',
-        marginRight: '8px',
-      }}></div>
-      <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+    <div className="flex items-center text-sm">
+      <span className={`w-2 h-2 rounded-full mr-2 ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+      <span className="text-gray-600 dark:text-gray-400">
+        {label}: {isConnected ? 'Connected' : 'Disconnected'}
+      </span>
     </div>
   );
 };

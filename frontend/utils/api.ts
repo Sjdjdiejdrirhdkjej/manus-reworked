@@ -44,6 +44,18 @@ export async function checkBackendStatus() {
   }
 }
 
+export async function checkMcpServerStatus(mcpUrl: string): Promise<boolean> {
+  if (!mcpUrl) {
+    return false;
+  }
+  try {
+    const response = await fetch(`${mcpUrl}/`);
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
 // --- New functions for MCP Server interactions ---
 
 interface McpApiResponse {
