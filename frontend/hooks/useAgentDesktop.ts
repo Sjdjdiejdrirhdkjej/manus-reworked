@@ -1,6 +1,7 @@
 'use client';
 
-import { useReducer } from 'react';
+import { useReducer, useEffect } from 'react';
+import { listFiles, readFile, writeToFile, createDirectory, moveItem, deleteItem } from '../utils/api';
 
 // State and Action Types
 export type Activity = {
@@ -19,7 +20,7 @@ export type FileData = {
 
 export type FileNode = {
   name: string;
-  // Add other properties if they exist in the file tree, e.g., isDirectory: boolean, children?: FileNode[];
+  isDirectory: boolean;
 };
 
 export type AgentDesktopState = {
@@ -79,19 +80,15 @@ function agentDesktopReducer(state: AgentDesktopState, action: AgentDesktopActio
       switch (payload.type) {
         case 'execute_command':
           return { ...newState, currentView: 'terminal', terminal: { ...newState.terminal, output: [...newState.terminal.output, `$ ${payload.args.command}`, payload.result] } };
-        case 'list_files':
-          // Assuming payload.result for list_files contains the file list string
-          // and payload.files (if available) contains structured file data
-          return { ...newState, currentView: 'files', files: { ...newState.files, fileTree: payload.files || [] } };
-        case 'read_file':
-          return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.file_name, content: payload.content || '' } } };
-        case 'write_to_file':
-        case 'create_file':
-          return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.file_name, content: payload.args.content || '' } } };
-        case 'create_directory':
-        case 'move_file_or_directory':
-          // These actions primarily result in an activity log entry.
-          // The newState is already updated with the new activity.
+        case 'list_directory_mcp':
+          return { ...newState, currentView: 'files', files: { ...newState.files, fileTree: payload.files.map((file: any) => ({ name: file.name, isDirectory: file.is_dir })) || [] } };
+        case 'read_file_from_mcp':
+          return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.path, content: payload.content || '' } } };
+        case 'write_file_to_mcp':
+          return { ...newState, currentView: 'files', files: { ...newState.files, currentFile: { name: payload.args.path, content: payload.args.content || '' } } };
+        case 'create_directory_mcp':
+        case 'move_item_mcp':
+        case 'delete_item_mcp':
           return newState;
         default:
           return newState;
@@ -103,6 +100,23 @@ function agentDesktopReducer(state: AgentDesktopState, action: AgentDesktopActio
 }
 
 // Hook
-export const useAgentDesktop = () => {
-  return useReducer(agentDesktopReducer, initialState);
+export const useAgentDesktop = (mcpUrl: string) => {
+  const [state, dispatch] = useReducer(agentDesktopReducer, initialState);
+
+  // Effect to load files when view changes to 'files'
+  useEffect(() => {
+    if (state.currentView === 'files' && mcpUrl) {
+      const fetchFiles = async () => {
+        const result = await listFiles(mcpUrl, '.');
+        if (result.files) {
+          dispatch({ type: 'API_ACTION', payload: { type: 'list_directory_mcp', files: result.files } });
+        } else if (result.error) {
+          dispatch({ type: 'API_ACTION', payload: { type: 'list_files', error: result.error } });
+        }
+      };
+      fetchFiles();
+    }
+  }, [state.currentView, mcpUrl]);
+
+  return [state, dispatch];
 };

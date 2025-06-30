@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 import shutil
+import httpx
 from typing import Optional, List
 
 from dotenv import load_dotenv
@@ -30,101 +31,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Tool Implementations (for file system and terminal) ---
+# --- Tool Implementations (for MCP Server) ---
 
-# Base directory for file operations in Vercel's ephemeral file system
-VERCEL_TMP_DIR = "/tmp"
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000") # Default to localhost for development
 
-def _get_full_path(file_name: str) -> str:
-    """Helper to get the full path within the Vercel /tmp directory."""
-    return os.path.join(VERCEL_TMP_DIR, file_name)
+async def execute_command(command: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{MCP_SERVER_URL}/execute_command", json={"command": command})
+        response.raise_for_status()
+        return response.json().get("result", "Command executed successfully.")
 
-def execute_command(command: str):
-    try:
-        # Commands are executed in the environment where the function runs
-        result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
-        return result.stdout.strip() or "Command executed successfully."
-    except subprocess.CalledProcessError as e:
-        return f"Command failed with error: {e.stderr.strip()}"
-    except Exception as e:
-        return f"Error executing command: {e}"
+async def write_file_to_mcp(path: str, content: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{MCP_SERVER_URL}/fs/write_file", json={"path": path, "content": content})
+        response.raise_for_status()
+        return response.json().get("message", f"File {path} written successfully.")
 
-def write_to_file(file_name: str, content: str):
-    full_path = _get_full_path(file_name)
-    try:
-        # Ensure directory exists before writing
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        with open(full_path, 'w') as f:
-            f.write(content)
-        return f"Content written to {file_name}"
-    except Exception as e:
-        return f"Error writing to file {file_name}: {e}"
+async def read_file_from_mcp(path: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{MCP_SERVER_URL}/fs/read_file", json={"path": path})
+        response.raise_for_status()
+        data = response.json()
+        return {"content": data.get("content", "")}
 
-def read_file(file_name: str, line_start: Optional[int] = None, line_end: Optional[int] = None):
-    full_path = _get_full_path(file_name)
-    try:
-        with open(full_path, 'r') as f:
-            lines = f.readlines()
-            if line_start is not None and line_end is not None:
-                # Adjust for 0-based indexing
-                content = "".join(lines[line_start - 1:line_end])
-            else:
-                content = "".join(lines)
-        return {"result": f"Read content from {file_name}", "content": content}
-    except FileNotFoundError:
-        return f"Error: File not found: {file_name}"
-    except Exception as e:
-        return f"Error reading file {file_name}: {e}"
+async def list_directory_mcp(path: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{MCP_SERVER_URL}/fs/list_directory", json={"path": path})
+        response.raise_for_status()
+        data = response.json()
+        return {"files": data.get("files", [])}
 
-def list_files(path: str = '.'):
-    # If path is relative, make it relative to VERCEL_TMP_DIR
-    if not os.path.isabs(path):
-        full_path = _get_full_path(path)
-    else:
-        full_path = path
+async def create_directory_mcp(path: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{MCP_SERVER_URL}/fs/create_directory", json={"path": path})
+        response.raise_for_status()
+        return response.json().get("message", f"Directory {path} created successfully.")
 
-    try:
-        files = []
-        for entry in os.listdir(full_path):
-            entry_full_path = os.path.join(full_path, entry)
-            if os.path.isdir(entry_full_path):
-                files.append(entry + '/') # Indicate directory
-            else:
-                files.append(entry)
-        return f"Files in {path} (within /tmp):\n" + "\n".join(files)
-    except FileNotFoundError:
-        return f"Error: Directory not found: {path}"
-    except Exception as e:
-        return f"Error listing files in {path}: {e}"
+async def move_item_mcp(path: str, new_path: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{MCP_SERVER_URL}/fs/move_item", json={"path": path, "new_path": new_path})
+        response.raise_for_status()
+        return response.json().get("message", f"Item moved from {path} to {new_path} successfully.")
 
-def create_directory(path: str):
-    full_path = _get_full_path(path)
-    try:
-        os.makedirs(full_path, exist_ok=True)
-        return f"Directory created: {path}"
-    except Exception as e:
-        return f"Error creating directory {path}: {e}"
-
-def move_file_or_directory(source_path: str, destination_path: str):
-    full_source_path = _get_full_path(source_path)
-    full_destination_path = _get_full_path(destination_path)
-    try:
-        shutil.move(full_source_path, full_destination_path)
-        return f"Moved {source_path} to {destination_path}"
-    except FileNotFoundError:
-        return f"Error: Source path not found: {source_path}"
-    except Exception as e:
-        return f"Error moving {source_path} to {destination_path}: {e}"
-
-def create_file(file_name: str):
-    full_path = _get_full_path(file_name)
-    try:
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        with open(full_path, 'a') as f:
-            pass # Just create an empty file
-        return f"File created: {file_name}"
-    except Exception as e:
-        return f"Error creating file {file_name}: {e}"
+async def delete_item_mcp(path: str, is_dir: bool = False):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{MCP_SERVER_URL}/fs/delete_item", json={"path": path, "is_dir": is_dir})
+        response.raise_for_status()
+        return response.json().get("message", f"Item {path} deleted successfully.")
 
 
 class ChatMessage(BaseModel):
@@ -161,7 +114,7 @@ async def chat(message: ChatMessage, x_mistral_api_key: Optional[str] = Header(N
                 "type": "function",
                 "function": {
                     "name": "execute_command",
-                    "description": "Execute a shell command in the virtual terminal environment.",
+                    "description": "Execute a shell command via the MCP server.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -174,53 +127,51 @@ async def chat(message: ChatMessage, x_mistral_api_key: Optional[str] = Header(N
             {
                 "type": "function",
                 "function": {
-                    "name": "write_to_file",
-                    "description": "Write content to a specified file in the virtual file system.",
+                    "name": "write_file_to_mcp",
+                    "description": "Write content to a specified file on the MCP server.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "file_name": {"type": "string", "description": "The name of the file to write to"},
+                            "path": {"type": "string", "description": "The path to the file to write to"},
                             "content": {"type": "string", "description": "The content to write into the file"}
                         },
-                        "required": ["file_name", "content"]
+                        "required": ["path", "content"]
                     }
                 }
             },
             {
                 "type": "function",
                 "function": {
-                    "name": "read_file",
-                    "description": "Read content from a specified file in the virtual file system.",
+                    "name": "read_file_from_mcp",
+                    "description": "Read content from a specified file on the MCP server.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "file_name": {"type": "string", "description": "The name of the file to read from"},
-                            "line_start": {"type": "integer", "description": "Optional: Starting line number to read (1-indexed)"},
-                            "line_end": {"type": "integer", "description": "Optional: Ending line number to read (1-indexed)"}
+                            "path": {"type": "string", "description": "The path to the file to read from"}
                         },
-                        "required": ["file_name"]
+                        "required": ["path"]
                     }
                 }
             },
             {
                 "type": "function",
                 "function": {
-                    "name": "list_files",
-                    "description": "List files and directories in the current virtual file system path.",
+                    "name": "list_directory_mcp",
+                    "description": "List files and directories on the MCP server.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "path": {"type": "string", "description": "The path to list (default: current directory)"}
+                            "path": {"type": "string", "description": "The path to the directory to list"}
                         },
-                        "required": []
+                        "required": ["path"]
                     }
                 }
             },
             {
                 "type": "function",
                 "function": {
-                    "name": "create_directory",
-                    "description": "Create a new directory in the virtual file system.",
+                    "name": "create_directory_mcp",
+                    "description": "Create a new directory on the MCP server.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -233,29 +184,30 @@ async def chat(message: ChatMessage, x_mistral_api_key: Optional[str] = Header(N
             {
                 "type": "function",
                 "function": {
-                    "name": "move_file_or_directory",
-                    "description": "Move or rename a file or directory in the virtual file system.",
+                    "name": "move_item_mcp",
+                    "description": "Move or rename a file or directory on the MCP server.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "source_path": {"type": "string", "description": "The source path of the file or directory."},
-                            "destination_path": {"type": "string", "description": "The destination path for the file or directory."}
+                            "path": {"type": "string", "description": "The path of the file or directory to move."},
+                            "new_path": {"type": "string", "description": "The new path for the file or directory."}
                         },
-                        "required": ["source_path", "destination_path"]
+                        "required": ["path", "new_path"]
                     }
                 }
             },
             {
                 "type": "function",
                 "function": {
-                    "name": "create_file",
-                    "description": "Create a new, empty file in the virtual file system.",
+                    "name": "delete_item_mcp",
+                    "description": "Delete a file or directory on the MCP server.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "file_name": {"type": "string", "description": "The name of the file to create"}
+                            "path": {"type": "string", "description": "The path of the file or directory to delete."},
+                            "is_dir": {"type": "boolean", "description": "Set to true if the item to delete is a directory."}
                         },
-                        "required": ["file_name"]
+                        "required": ["path"]
                     }
                 }
             }
@@ -317,7 +269,7 @@ async def chat(message: ChatMessage, x_mistral_api_key: Optional[str] = Header(N
                     # Dynamically call the tool function
                     tool_function = globals().get(tool_name)
                     if tool_function and callable(tool_function):
-                        result = tool_function(**tool_args)
+                        result = await tool_function(**tool_args)
                     else:
                         result = f"Unknown tool: {tool_name}"
 

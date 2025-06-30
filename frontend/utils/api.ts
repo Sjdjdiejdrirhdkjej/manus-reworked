@@ -79,26 +79,26 @@ export async function executeCommand(mcpUrl: string, command: string): Promise<M
   return callMcpApi(mcpUrl, 'execute_command', { command });
 }
 
-export async function writeToFile(mcpUrl: string, fileName: string, content: string): Promise<McpApiResponse> {
-  return callMcpApi(mcpUrl, 'write_to_file', { file_name: fileName, content });
+export async function writeToFile(mcpUrl: string, path: string, content: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'fs/write_file', { path, content });
 }
 
-export async function readFile(mcpUrl: string, fileName: string, lineStart?: number, lineEnd?: number): Promise<McpApiResponse> {
-  return callMcpApi(mcpUrl, 'read_file', { file_name: fileName, line_start: lineStart, line_end: lineEnd });
+export async function readFile(mcpUrl: string, path: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'fs/read_file', { path });
 }
 
 export async function listFiles(mcpUrl: string, path: string = '.'): Promise<McpApiResponse> {
-  return callMcpApi(mcpUrl, 'list_files', { path });
+  return callMcpApi(mcpUrl, 'fs/list_directory', { path });
 }
 
 export async function createDirectory(mcpUrl: string, path: string): Promise<McpApiResponse> {
-  return callMcpApi(mcpUrl, 'create_directory', { path });
+  return callMcpApi(mcpUrl, 'fs/create_directory', { path });
 }
 
-export async function moveFileOrDirectory(mcpUrl: string, sourcePath: string, destinationPath: string): Promise<McpApiResponse> {
-  return callMcpApi(mcpUrl, 'move_file_or_directory', { source_path: sourcePath, destination_path: destinationPath });
+export async function moveItem(mcpUrl: string, path: string, newPath: string): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'fs/move_item', { path, new_path: newPath });
 }
 
-export async function createFile(mcpUrl: string, fileName: string): Promise<McpApiResponse> {
-  return callMcpApi(mcpUrl, 'create_file', { file_name: fileName });
+export async function deleteItem(mcpUrl: string, path: string, isDir: boolean = false): Promise<McpApiResponse> {
+  return callMcpApi(mcpUrl, 'fs/delete_item', { path, is_dir: isDir });
 }

@@ -83,7 +83,7 @@ const AgentDesktopSidebar: React.FC<AgentDesktopSidebarProps> = ({
                 <h3 className="font-semibold text-gray-700 mb-2">File Tree</h3>
                 <ul>
                   {files.fileTree.map((file: FileNode, index: number) => (
-                    <li key={index} className="text-sm text-gray-800">{file.name}</li>
+                    <li key={index} className="text-sm text-gray-800">{file.name}{file.isDirectory ? '/' : ''}</li>
                   ))}
                 </ul>
               </div>

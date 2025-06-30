@@ -10,7 +10,7 @@ import SettingsModal from '@/components/SettingsModal';
 import './chat.css';
 import { useAgentDesktop } from '@/hooks/useAgentDesktop';
 import AgentDesktopSidebar from '@/components/AgentDesktopSidebar';
-import { sendMessageToApi, executeCommand, writeToFile, readFile, listFiles, createDirectory, moveFileOrDirectory, createFile } from '@/utils/api';
+import { sendMessageToApi, executeCommand, writeToFile, readFile, listFiles, createDirectory, moveItem, deleteItem } from '@/utils/api';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import useLocalStorage from '@/hooks/useLocalStorage';
 
@@ -28,7 +28,7 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
 
-  const [desktopState, dispatch] = useAgentDesktop();
+  const [desktopState, dispatch] = useAgentDesktop(mcpUrl);
 
   const desktopEnabled = !!mcpUrl;
 
@@ -57,23 +57,23 @@ export default function Home() {
               case 'execute_command':
                 result = await executeCommand(mcpUrl, action.args.command);
                 break;
-              case 'write_to_file':
-                result = await writeToFile(mcpUrl, action.args.file_name, action.args.content);
+              case 'write_file_to_mcp':
+                result = await writeToFile(mcpUrl, action.args.path, action.args.content);
                 break;
-              case 'read_file':
-                result = await readFile(mcpUrl, action.args.file_name, action.args.line_start, action.args.line_end);
+              case 'read_file_from_mcp':
+                result = await readFile(mcpUrl, action.args.path);
                 break;
-              case 'list_files':
+              case 'list_directory_mcp':
                 result = await listFiles(mcpUrl, action.args.path);
                 break;
-              case 'create_directory':
+              case 'create_directory_mcp':
                 result = await createDirectory(mcpUrl, action.args.path);
                 break;
-              case 'move_file_or_directory':
-                result = await moveFileOrDirectory(mcpUrl, action.args.source_path, action.args.destination_path);
+              case 'move_item_mcp':
+                result = await moveItem(mcpUrl, action.args.path, action.args.new_path);
                 break;
-              case 'create_file':
-                result = await createFile(mcpUrl, action.args.file_name);
+              case 'delete_item_mcp':
+                result = await deleteItem(mcpUrl, action.args.path, action.args.is_dir);
                 break;
               default:
                 result = { error: `Unknown desktop action type: ${action.type}` };
