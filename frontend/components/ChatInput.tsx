@@ -28,11 +28,13 @@ const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleSend(input);
-        setInput('');
-        if (ref && typeof ref === 'object' && 'current' in ref && ref.current) {
-          ref.current.focus();
-        }
+        setTimeout(() => {
+          handleSend(input);
+          setInput('');
+          if (ref && typeof ref === 'object' && 'current' in ref && ref.current) {
+            ref.current.focus();
+          }
+        }, 0);
       }
     };
 
@@ -54,11 +56,13 @@ const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(
             disabled={isLoading}
           />
           <button onClick={() => {
-            handleSend(input);
-            setInput('');
-            if (ref && typeof ref === 'object' && 'current' in ref && ref.current) {
-              ref.current.focus();
-            }
+            setTimeout(() => {
+              handleSend(input);
+              setInput('');
+              if (ref && typeof ref === 'object' && 'current' in ref && ref.current) {
+                ref.current.focus();
+              }
+            }, 0);
           }} className="send-button flex items-center justify-center" disabled={isLoading}>
             {isLoading ? (
               <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
