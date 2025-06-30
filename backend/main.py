@@ -33,7 +33,7 @@ app.add_middleware(
 
 # --- Tool Implementations (for MCP Server) ---
 
-MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000") # Default to localhost for development
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL")
 
 async def execute_command(command: str):
     async with httpx.AsyncClient() as client:

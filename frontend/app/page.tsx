@@ -23,7 +23,7 @@ export default function Home() {
   const [openThinkingId, setOpenThinkingId] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [mistralApiKey, setMistralApiKey] = useLocalStorage<string>('mistral-api-key', '');
-  const [mcpUrl, setMcpUrl] = useLocalStorage<string>('mcp-url', '');
+  const [mcpUrl, setMcpUrl] = useLocalStorage<string>('mcp-url', process.env.NEXT_PUBLIC_MCP_SERVER_URL || '');
 
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
