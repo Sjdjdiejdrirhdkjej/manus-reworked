@@ -76,6 +76,26 @@ This project has been updated to prepare for deployment on Vercel.
     npm run dev
     ```
 
+### Remote MCP Server Configuration
+
+If your MCP server is running on a different machine or a different URL, you need to configure both the backend and frontend to point to it.
+
+#### Backend Configuration
+
+Set the `MCP_SERVER_URL` environment variable in the `backend/.env` file to the URL of your remote MCP server:
+
+```
+MCP_SERVER_URL="http://your_remote_mcp_server_ip:8000"
+```
+
+#### Frontend Configuration
+
+Set the `NEXT_PUBLIC_MCP_SERVER_URL` environment variable in the `frontend/.env.local` file (create if it doesn't exist) to the URL of your remote MCP server:
+
+```
+NEXT_PUBLIC_MCP_SERVER_URL="http://your_remote_mcp_server_ip:8000"
+```
+
 ### Running with Docker Compose
 
 1.  Ensure Docker and Docker Compose are installed.
