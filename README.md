@@ -36,25 +36,7 @@ This project has been updated to prepare for deployment on Vercel.
     uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ```
 
-### MCP Server Setup
 
-1.  Navigate to the `mcp_server/` directory:
-
-    ```bash
-    cd mcp_server
-    ```
-
-2.  Install Python dependencies:
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3.  Run the MCP server:
-
-    ```bash
-    uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-    ```
 
 ### Frontend Setup
 
@@ -76,24 +58,16 @@ This project has been updated to prepare for deployment on Vercel.
     npm run dev
     ```
 
-### Remote MCP Server Configuration
+### Remote CodeSandbox Proxy Configuration
 
-If your MCP server is running on a different machine or a different URL, you need to configure both the backend and frontend to point to it.
+If your CodeSandbox proxy is running on a different machine or a different URL, you need to configure the backend to point to it.
 
 #### Backend Configuration
 
-Set the `MCP_SERVER_URL` environment variable in the `backend/.env` file to the URL of your remote MCP server:
+Set the `MCP_SERVER_URL` environment variable in the `backend/.env` file to the URL of your remote CodeSandbox proxy:
 
 ```
-MCP_SERVER_URL="http://your_remote_mcp_server_ip:8000"
-```
-
-#### Frontend Configuration
-
-Set the `NEXT_PUBLIC_MCP_SERVER_URL` environment variable in the `frontend/.env.local` file (create if it doesn't exist) to the URL of your remote MCP server:
-
-```
-NEXT_PUBLIC_MCP_SERVER_URL="http://your_remote_mcp_server_ip:8000"
+MCP_SERVER_URL="http://your_remote_codesandbox_proxy_ip:3001"
 ```
 
 ### Running with Docker Compose
@@ -107,19 +81,13 @@ NEXT_PUBLIC_MCP_SERVER_URL="http://your_remote_mcp_server_ip:8000"
 
     This will build and start both the frontend and backend services.
 
-## Backend Changes (`mcp_server_main.py`)
+## Backend Changes
 
-The local file system operations (read, write, list, create, move files/directories) have been removed from `mcp_server_main.py`. These functionalities are not suitable for Vercel's serverless environment, which does not provide a persistent, writable file system.
+The previous `mcp_server` has been replaced by a Node.js-based `codesandbox_proxy` service that leverages the CodeSandbox SDK. All file system operations and shell command executions are now proxied through this service to a CodeSandbox VM.
 
-### File Storage
+### File Storage and Terminal Shell Execution
 
-**MCP server integration for file storage is now implemented in `mcp_server_main.py`**. This includes endpoints for writing, reading, listing, creating directories, moving, and deleting files/directories on the MCP server.
-
-### Terminal Shell Execution
-
-The `execute_command` endpoint remains in `mcp_server_main.py` for now, but it is **not suitable for Vercel deployment**. Vercel functions are short-lived and stateless, and cannot execute arbitrary shell commands in a persistent manner. You will need to find an alternative solution for terminal shell execution, such as:
-*   A dedicated compute instance (e.g., AWS EC2, Google Compute Engine, DigitalOcean Droplet).
-*   A managed container service (e.g., AWS Fargate, Google Cloud Run).
+File system operations (read, write, list, create directory, move, and delete files/directories) and terminal shell execution are now handled by the `codesandbox_proxy` service, which interacts with a CodeSandbox VM. This provides a more isolated and potentially more scalable solution for these functionalities.
 
 ## Frontend Changes
 

@@ -23,16 +23,16 @@ services:
     networks:
       - app-network
     environment:
-      - MCP_SERVER_URL=http://mcp_server:8000
+      - MCP_SERVER_URL=http://codesandbox_proxy:3001
     depends_on:
-      - mcp_server
+      - codesandbox_proxy
 
-  mcp_server:
+  codesandbox_proxy:
     build:
-      context: ./mcp_server
+      context: ./codesandbox_proxy
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "3001:3001"
     networks:
       - app-network
 
