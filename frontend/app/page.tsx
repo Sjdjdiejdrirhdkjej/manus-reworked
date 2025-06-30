@@ -36,7 +36,15 @@ export default function Home() {
         setMcpConnectionStatus(false);
       }
     };
+
+    // Initial check
     checkStatus();
+
+    // Set up interval for periodic checks (e.g., every 5 seconds)
+    const intervalId = setInterval(checkStatus, 5000); 
+
+    // Clean up interval on component unmount or mcpUrl change
+    return () => clearInterval(intervalId);
   }, [mcpUrl]);
 
   const inputRef = useRef<HTMLInputElement>(null);
