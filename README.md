@@ -89,8 +89,6 @@ This project has been updated to prepare for deployment on Vercel.
 
 ## Backend Changes (`mcp_server_main.py`)
 
-## Backend Changes (`mcp_server_main.py`)
-
 The local file system operations (read, write, list, create, move files/directories) have been removed from `mcp_server_main.py`. These functionalities are not suitable for Vercel's serverless environment, which does not provide a persistent, writable file system.
 
 ### File Storage
