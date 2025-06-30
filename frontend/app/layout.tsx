@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import ConnectionStatus from "@/components/ConnectionStatus";
+
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,9 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 999 }}>
-          <ConnectionStatus />
-        </div>
+        
         {children}
       </body>
     </html>

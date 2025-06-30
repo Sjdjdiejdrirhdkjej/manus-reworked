@@ -1,5 +1,5 @@
 import React from 'react';
-import Image from 'next/image';
+
 import type { AgentDesktopState, AgentDesktopAction, FileNode } from '@/hooks/useAgentDesktop';
 import { Icons } from './Icons';
 

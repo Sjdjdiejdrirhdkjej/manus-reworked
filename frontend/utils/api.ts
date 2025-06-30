@@ -11,7 +11,7 @@ export async function sendMessageToApi(message: string, mode: Mode, mistralApiKe
     }
 
     // This still goes to the main backend (AI service)
-    const response = await fetch(`/chat`, {
+    const response = await fetch(`/api/chat`, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({ message, mode }),
@@ -62,6 +62,7 @@ interface McpApiResponse {
   result?: string;
   content?: string;
   error?: string;
+  files?: { name: string; is_dir: boolean; }[];
 }
 
 async function callMcpApi(mcpUrl: string, endpoint: string, data: any): Promise<McpApiResponse> {

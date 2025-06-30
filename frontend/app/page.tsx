@@ -73,7 +73,7 @@ export default function Home() {
 
       if (data.desktop_actions && Array.isArray(data.desktop_actions)) {
         for (const action of data.desktop_actions) {
-          let result: any;
+          let result: { result?: string; error?: string; content?: string; };
           if (desktopEnabled) {
             switch (action.type) {
               case 'execute_command':
