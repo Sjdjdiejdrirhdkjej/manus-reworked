@@ -98,7 +98,7 @@ function App() {
   const [terminalHistory, setTerminalHistory] = useState<TerminalCommand[]>([]);
   const [fileEdits, setFileEdits] = useState<FileEdit[]>([]);
   const [browserViews, setBrowserViews] = useState<BrowserView[]>([]);
-  const [currentElements, setCurrentElements] = useState<{ index: number; box: string }[]>([]);
+
 
   const handleDesktopCommand = async (command: DesktopCommand) => {
     if (mode === 'chat') return; // Desktop commands only work in CUA and high-effort modes
@@ -242,11 +242,11 @@ function App() {
     }
   };
   const [initSteps, setInitSteps] = useState<InitStep[]>([
-    { message: 'Starting system initialization...', status: 'pending' },
-    { message: 'Checking CodeSandbox API key...', status: 'pending' },
-    { message: 'Connecting to CodeSandbox...', status: 'pending' },
-    { message: 'Setting up virtual environment...', status: 'pending' },
-    { message: 'Preparing development workspace...', status: 'pending' }
+    { message: 'Starting WebContainer...', status: 'pending' },
+    { message: 'Checking API key...', status: 'pending' },
+    { message: 'Setting up file system...', status: 'pending' },
+    { message: 'Installing dependencies...', status: 'pending' },
+    { message: 'Preparing workspace...', status: 'pending' }
   ]);
 
   useEffect(() => {
@@ -256,19 +256,41 @@ function App() {
         return;
       }
 
+      setInitStatus('connecting');
+
       // Initialize sandbox if we have a key
-      if (sandboxKey && !sandboxReady) {
-        try {
-          await sandboxService.initialize(sandboxKey);
-          setSandboxReady(true);
-        } catch (error) {
-          console.error('Failed to initialize sandbox:', error);
-          setInitStatus('error');
-          return;
-        }
+      if (!sandboxKey) {
+        setInitSteps(steps => steps.map((step, index) => 
+          index === 1 ? { ...step, status: 'error' } : step
+        ));
+        setInitStatus('error');
+        return;
       }
 
-      setInitStatus('connecting');
+      // Try to initialize sandbox
+      try {
+        await sandboxService.initialize(sandboxKey, (step) => {
+          setInitSteps(steps => steps.map((s, index) => ({
+            ...s,
+            status: index === step ? 'loading' :
+                    index < step ? 'done' : 'pending'
+          })));
+        });
+        
+        // Mark all steps as done
+        setInitSteps(steps => steps.map(step => ({ ...step, status: 'done' })));
+        setSandboxReady(true);
+        setInitStatus('ready');
+      } catch (error: unknown) {
+        console.error('Failed to initialize sandbox:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        setInitSteps(steps => steps.map(step => ({
+          ...step,
+          status: step.status === 'loading' ? 'error' : step.status
+        })));
+        setInitStatus('error');
+        return;
+      }
       
       for (let i = 0; i < initSteps.length; i++) {
         setInitSteps(steps => steps.map((step, index) => 

@@ -4,14 +4,17 @@ export class SandboxService {
   private container: WebContainer | null = null;
   private files: Record<string, { code: string }> = {};
 
-  async initialize(sandboxKey: string) {
+  async initialize(sandboxKey: string, onProgress?: (step: number) => void) {
     if (!sandboxKey) throw new Error('Sandbox API key is required');
 
     try {
       // Initialize WebContainer
+      onProgress?.(0);
       this.container = await WebContainer.boot();
+      onProgress?.(1);
 
       // Mount initial filesystem
+      onProgress?.(2);
       await this.container.mount({
         'package.json': {
           file: {
@@ -24,6 +27,11 @@ export class SandboxService {
         }
       });
       
+      // Set up workspace
+      onProgress?.(3);
+      await this.container.spawn('npm', ['init', '-y']);
+      
+      onProgress?.(4);
       return true;
     } catch (error) {
       console.error('Failed to initialize sandbox:', error);
