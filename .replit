@@ -1,10 +1,18 @@
 run = "npm run dev"
-modules = ["nodejs", "nodejs-20"]
+modules = ["nodejs-20", "web"]
 
 [nix]
 args = ["-I", "nixpkgs=channel:nixos-23.11", "replit.nix"]
+channel = "stable-24_05"
+
+[[ports]]
+localPort = 3456
+externalPort = 3000
 
 [[ports]]
 localPort = 5173
 externalPort = 80
 exposeLocalhost = true
+
+[deployment]
+run = ["sh", "-c", "npm run dev"]
