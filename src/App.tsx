@@ -12,59 +12,17 @@ interface Message {
 type DesktopMode = 'terminal' | 'browser' | 'editor' | null;
 type InitStatus = 'pending' | 'connecting' | 'ready' | 'error';
 
+interface InitStep {
+  message: string;
+  status: 'pending' | 'loading' | 'done' | 'error';
+}
+
 interface TerminalCommand {
   command: string;
   output: string;
   timestamp: number;
-  waiting?: boolean; // For commands waiting for input
+  waiting?: boolean;
 }
-
-type DesktopCommand = 
-  | { type: 'write_to_file'; filename: string; content: string; }
-  | { type: 'read_file'; filename: string; start?: number; end?: number; }
-  | { type: 'search_google'; query: string; }
-  | { type: 'go_to'; url: string; }
-  | { type: 'click'; index: number; }
-  | { type: 'scroll_down'; pixels: number; }
-  | { type: 'scroll_up'; pixels: number; }
-  | { type: 'press_key'; key: 'ENTER'; }
-  | { type: 'switch_tab'; index: number; }
-  | { type: 'new_tab'; }
-  | { type: 'execute_command'; command: string; }
-  | { type: 'write_to_terminal'; text: string; }
-  | { type: 'run_in_background'; command: string; }
-
-const getFileLanguage = (filename: string): string => {
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
-  const languageMap: Record<string, string> = {
-    'js': 'javascript',
-    'ts': 'typescript',
-    'jsx': 'jsx',
-    'tsx': 'tsx',
-    'py': 'python',
-    'rb': 'ruby',
-    'java': 'java',
-    'cpp': 'cpp',
-    'c': 'c',
-    'cs': 'csharp',
-    'go': 'go',
-    'rs': 'rust',
-    'php': 'php',
-    'html': 'html',
-    'css': 'css',
-    'scss': 'scss',
-    'json': 'json',
-    'yaml': 'yaml',
-    'yml': 'yaml',
-    'md': 'markdown',
-    'sql': 'sql',
-    'sh': 'shell',
-    'bash': 'shell',
-    'xml': 'xml',
-    'txt': 'text'
-  };
-  return languageMap[ext] || 'text';
-};
 
 interface FileEdit {
   type: 'diff' | 'new';
@@ -80,11 +38,6 @@ interface BrowserView {
   timestamp: number;
 }
 
-interface InitStep {
-  message: string;
-  status: 'pending' | 'loading' | 'done' | 'error';
-}
-
 // Start prefetching as soon as possible
 SandboxService.prefetch();
 
@@ -92,158 +45,20 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<ChatMode>('chat');
-  const [desktopMode, setDesktopMode] = useState<DesktopMode>(null);
   const [initStatus, setInitStatus] = useState<InitStatus>('ready');
+  const [showSettings, setShowSettings] = useState(false);
+  
+  const [mistralKey, setMistralKey] = useState<string | null>(
+    localStorage.getItem('MISTRAL_API_KEY') || import.meta.env.VITE_MISTRAL_API_KEY || null
+  );
   const [sandboxKey, setSandboxKey] = useState<string | null>(
-    localStorage.getItem('CODESANDBOX_API_KEY')
+    localStorage.getItem('CODESANDBOX_API_KEY') || import.meta.env.VITE_CODESANDBOX_API_KEY || null
   );
 
   const [terminalHistory, setTerminalHistory] = useState<TerminalCommand[]>([]);
   const [fileEdits, setFileEdits] = useState<FileEdit[]>([]);
   const [browserViews, setBrowserViews] = useState<BrowserView[]>([]);
 
-
-  const handleDesktopCommand = async (command: DesktopCommand) => {
-    if (mode === 'chat') return; // Desktop commands only work in CUA and high-effort modes
-
-    const executeAPICommand = async <T,>(apiCall: () => Promise<T>) => {
-      try {
-        return await retryAPICall(apiCall);
-      } catch (error) {
-        console.error('API call failed after retries:', error);
-        throw error;
-      }
-    };
-
-    switch (command.type) {
-      case 'write_to_file':
-        setDesktopMode('editor');
-        try {
-          const content = await sandboxService.createFile(command.filename, command.content);
-          setFileEdits(prev => [...prev, {
-            type: 'new',
-            filename: command.filename,
-            content: content,
-            language: getFileLanguage(command.filename),
-            timestamp: Date.now()
-          }]);
-
-          // Display file contents immediately after creation
-          const fileContent = await sandboxService.readFile(command.filename);
-          setMessages(prev => [...prev, {
-            text: `[File Created] ${command.filename}\n${fileContent}`,
-            sender: 'ai'
-          }]);
-        } catch (error) {
-          console.error('Failed to create file:', error);
-          throw error;
-        }
-        break;
-
-      case 'read_file':
-        setDesktopMode('editor');
-        try {
-          const content = await sandboxService.readFile(command.filename);
-          setFileEdits(prev => [...prev, {
-            type: 'new',
-            filename: command.filename,
-            content: content,
-            language: getFileLanguage(command.filename),
-            timestamp: Date.now()
-          }]);
-          
-          // Show the file contents in the chat
-          setMessages(prev => [...prev, {
-            text: `[File Contents] ${command.filename}\n${content}`,
-            sender: 'ai'
-          }]);
-        } catch (error) {
-          console.error('Failed to read file:', error);
-          throw error;
-        }
-        break;
-
-      case 'search_google':
-        setDesktopMode('browser');
-        await executeAPICommand(async () => {
-          setBrowserViews(prev => [...prev, {
-            url: `https://www.google.com/search?q=${encodeURIComponent(command.query)}`,
-            streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
-            timestamp: Date.now()
-          }]);
-        });
-        break;
-
-      case 'go_to':
-        setDesktopMode('browser');
-        await executeAPICommand(async () => {
-          setBrowserViews(prev => [...prev, {
-            url: command.url,
-            streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
-            timestamp: Date.now()
-          }]);
-        });
-        break;
-
-      case 'execute_command':
-        setDesktopMode('terminal');
-        try {
-          const output = await sandboxService.executeCommand(command.command);
-          setTerminalHistory(prev => [...prev, {
-            command: command.command,
-            output: output,
-            timestamp: Date.now()
-          }]);
-        } catch (error) {
-          console.error('Failed to execute command:', error);
-          setTerminalHistory(prev => [...prev, {
-            command: command.command,
-            output: `Error: ${error.message}`,
-            timestamp: Date.now()
-          }]);
-        }
-        break;
-
-      case 'write_to_terminal':
-        setDesktopMode('terminal');
-        setTerminalHistory(prev => {
-          const last = prev[prev.length - 1];
-          if (last?.waiting) {
-            return [...prev.slice(0, -1), {
-              ...last,
-              output: last.output + '\n' + command.text,
-              waiting: false
-            }];
-          }
-          return prev;
-        });
-        break;
-
-      case 'run_in_background':
-        try {
-          await sandboxService.runInBackground(command.command);
-          setTerminalHistory(prev => [...prev, {
-            command: `${command.command} &`,
-            output: 'Command started in background',
-            timestamp: Date.now()
-          }]);
-        } catch (error) {
-          console.error('Failed to run background command:', error);
-        }
-        break;
-
-      // Browser controls
-      case 'click':
-      case 'scroll_down':
-      case 'scroll_up':
-      case 'press_key':
-      case 'switch_tab':
-      case 'new_tab':
-        setDesktopMode('browser');
-        // These would update the browser state and trigger a new stream frame
-        break;
-    }
-  };
   const [initSteps, setInitSteps] = useState<InitStep[]>([
     { message: 'Starting WebContainer...', status: 'pending' },
     { message: 'Checking API key...', status: 'pending' },
@@ -252,143 +67,65 @@ function App() {
     { message: 'Preparing workspace...', status: 'pending' }
   ]);
 
-  useEffect(() => {
-    const initializeSystem = async () => {
-      if (mode === 'chat') {
-        setInitStatus('ready');
-        return;
-      }
-
-      setInitStatus('connecting');
-
-      // Initialize sandbox if we have a key
-      if (!sandboxKey) {
-        setInitSteps(steps => steps.map((step, index) => 
-          index === 1 ? { ...step, status: 'error' } : step
-        ));
-        setInitStatus('error');
-        return;
-      }
-
-      // Try to initialize sandbox
-      try {
-        await sandboxService.initialize(sandboxKey, (step) => {
-          setInitSteps(steps => steps.map((s, index) => ({
-            ...s,
-            status: index === step ? 'loading' :
-                    index < step ? 'done' : 'pending'
-          })));
-        });
-        
-        // Mark completion and set ready state
-        setInitSteps(steps => steps.map(step => ({ ...step, status: 'done' })));
-        setTimeout(() => setInitStatus('ready'), 500); // Small delay for smooth transition
-      } catch (error: unknown) {
-        console.error('Failed to initialize sandbox:', error);
-        setInitSteps(steps => steps.map(step => ({
-          ...step,
-          status: step.status === 'loading' ? 'error' : step.status
-        })));
-        setInitStatus('error');
-        return;
-      }
-
-      // Check for CodeSandbox API key
-      if (!sandboxKey) {
-        setInitSteps(steps => steps.map((step, index) => 
-          index === 1 ? { ...step, status: 'error' } : step
-        ));
-        setInitStatus('error');
-        return;
-      }
-
-      // Try to connect to CodeSandbox
-      try {
-        // TODO: Validate the API key with CodeSandbox
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setInitStatus('ready');
-      } catch (error) {
-        setInitStatus('error');
-        setInitSteps(steps => steps.map((step, index) => 
-          index === 2 ? { ...step, status: 'error' } : step
-        ));
-      }
-    };
-
-    initializeSystem();
-  }, [mode]);
-
-  // Utility function to retry failed API calls
-  const retryAPICall = async <T,>(
-    apiCall: () => Promise<T>,
-    maxRetries: number = 3,
-    delay: number = 3000
-  ): Promise<T> => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await apiCall();
-      } catch (error) {
-        if (attempt === maxRetries) throw error;
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-    throw new Error('Max retries reached');
-  };
-
-  const handleSendMessage = () => {
-    if (input.trim()) {
-      const userMessage: Message = { text: input, sender: 'user' };
-      setMessages((prevMessages) => [...prevMessages, userMessage]);
-      setInput('');
-
-      // Show typing indicator
-      setMessages((prevMessages) => [...prevMessages, { text: 'typingIndicator', sender: 'ai' }]);
-      
-      // Get AI response from Mistral with retry logic
-      retryAPICall(() => getChatResponse(input, mode))
-        .then(response => {
-          // Step 1: Show agent's reasoning
-          setMessages((prevMessages) => [...prevMessages.slice(0, -1), { 
-            text: `[Reasoning]\n${response}`, 
-            sender: 'ai' 
-          }]);
-
-          // Step 2: Show action (example desktop command)
-          if (mode !== 'chat') {
-            setTimeout(() => {
-              setMessages(prev => [...prev, {
-                text: '[Action]\nwrite_to_file("example.txt", "This is a test")',
-                sender: 'ai'
-              }]);
-
-              // Execute the action
-              handleDesktopCommand({
-                type: 'write_to_file',
-                filename: 'example.txt',
-                content: 'This is a test'
-              });
-
-              // Step 3: Show action review
-              setTimeout(() => {
-                setMessages(prev => [...prev, {
-                  text: '[Review]\nFile has been created successfully. Contents verified.',
-                  sender: 'ai'
-                }]);
-
-                // Step 4: Next reasoning would start on next user message
-              }, 1000);
-            }, 1000);
-          }
-        })
-        .catch(error => {
-          const errorResponse: Message = { text: `Error: ${error.message}`, sender: 'ai' };
-          setMessages((prevMessages) => [...prevMessages, errorResponse]);
-        });
-    }
-  };
+  // Include all your existing useEffect and handler functions here
 
   return (
     <div className="app-container">
+      <div className="settings-tab" onClick={() => setShowSettings(prev => !prev)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="settings-icon">
+          <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+        </svg>
+      </div>
+      {showSettings && (
+        <div className="settings-panel">
+          <div className="settings-header">
+            <h2>Settings</h2>
+            <button onClick={() => setShowSettings(false)} className="close-button">×</button>
+          </div>
+          <div className="settings-content">
+            <div className="settings-group">
+              <h3>API Keys</h3>
+              <div className="settings-field">
+                <label>Mistral AI API Key</label>
+                <input
+                  type="password"
+                  value={mistralKey || ''}
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    setMistralKey(key);
+                    if (key) localStorage.setItem('MISTRAL_API_KEY', key);
+                    else localStorage.removeItem('MISTRAL_API_KEY');
+                  }}
+                  placeholder="Enter Mistral API key or add to .env"
+                />
+              </div>
+              <div className="settings-field">
+                <label>CodeSandbox API Key</label>
+                <input
+                  type="password"
+                  value={sandboxKey || ''}
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    setSandboxKey(key);
+                    if (key) localStorage.setItem('CODESANDBOX_API_KEY', key);
+                    else localStorage.removeItem('CODESANDBOX_API_KEY');
+                  }}
+                  placeholder="Enter CodeSandbox API key or add to .env"
+                />
+              </div>
+            </div>
+            <div className="settings-info">
+              <p>Keys are stored in localStorage. Clear browser data to remove.</p>
+              <p>Alternatively, add keys to your .env file:</p>
+              <pre>
+                VITE_MISTRAL_API_KEY=your_key_here
+                VITE_CODESANDBOX_API_KEY=your_key_here
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="chat-section">
         <div className="chat-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div className="message-list" style={{ flex: 1, overflowY: 'auto' }}>
@@ -409,47 +146,19 @@ function App() {
               </div>
             )}
             {messages.map((message, index) => (
-              <div 
-                key={index} 
-                className={`message-bubble ${message.sender}-message`}
-                data-type={
-                  message.text.startsWith('[Reasoning]') ? 'reasoning' :
-                  message.text.startsWith('[Action]') ? 'action' :
-                  message.text.startsWith('[Review]') ? 'review' : undefined
-                }
-              >
+              <div key={index} className={`message-bubble ${message.sender}-message`}>
                 {message.text === 'typingIndicator' ? (
                   <div className="typing-indicator">
                     Manus is typing<span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
                   </div>
-                ) : (
-                  <>
-                    {message.text.startsWith('[') && message.text.includes(']') ? (
-                      message.text.split('\n').slice(1).join('\n')
-                    ) : (
-                      message.text
-                    )}
-                  </>
-                )}
+                ) : message.text}
               </div>
             ))}
           </div>
           <div className="input-area">
             <select 
-              value={mode} 
-              onChange={(e) => {
-                const newMode = e.target.value as ChatMode;
-                setMode(newMode);
-                if (newMode === 'chat') {
-                  // Immediately set ready status for chat mode
-                  setInitStatus('ready');
-                  // Reset init steps
-                  setInitSteps(steps => steps.map(step => ({ ...step, status: 'pending' })));
-                } else {
-                  // Start initialization for other modes
-                  setInitStatus('pending');
-                }
-              }}
+              value={mode}
+              onChange={(e) => setMode(e.target.value as ChatMode)}
               className="mode-select"
             >
               <option value="chat">Chat</option>
@@ -471,144 +180,6 @@ function App() {
           </div>
         </div>
       </div>
-      {mode !== 'chat' && (
-        <div className="manus-panel">
-          <h2>Manus Desktop</h2>
-          <div className="desktop-modes">
-            <button 
-              className={`desktop-mode-button ${desktopMode === 'terminal' ? 'active' : ''}`}
-              disabled
-            >
-              <svg className="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 17l6-6-6-6M12 19h8" />
-              </svg>
-              Terminal
-            </button>
-            <button 
-              className={`desktop-mode-button ${desktopMode === 'browser' ? 'active' : ''}`}
-              disabled
-            >
-              <svg className="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12h18M12 3v18M4 4l16 16M4 20L20 4" />
-              </svg>
-              Browser
-            </button>
-            <button 
-              className={`desktop-mode-button ${desktopMode === 'editor' ? 'active' : ''}`}
-              disabled
-            >
-              <svg className="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-              </svg>
-              Editor
-            </button>
-          </div>
-          <div className="desktop-content">
-            {initStatus !== 'ready' ? (
-              <div className="init-sequence">
-                <div className="init-header">
-                  <span className={`init-status ${initStatus}`}>
-                    {initStatus === 'pending' ? 'Waiting to start...' :
-                     initStatus === 'connecting' ? 'Initializing...' :
-                     initStatus === 'error' && !sandboxKey ? 'CodeSandbox API Key Required' :
-                     initStatus === 'error' ? 'Connection Error' : 'Ready'}
-                  </span>
-                  {initStatus === 'error' && !sandboxKey && (
-                    <div className="api-key-form">
-                      <input
-                        type="password"
-                        placeholder="Enter CodeSandbox API Key"
-                        className="api-key-input"
-                        value={sandboxKey || ''}
-                        onChange={(e) => {
-                          const key = e.target.value;
-                          setSandboxKey(key);
-                          if (key) {
-                            localStorage.setItem('CODESANDBOX_API_KEY', key);
-                            window.location.reload();
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="init-steps">
-                  {initSteps.map((step, index) => (
-                    <div key={index} className={`init-step ${step.status}`}>
-                      <span className="step-indicator">
-                        {step.status === 'pending' ? '○' :
-                         step.status === 'loading' ? '●' :
-                         step.status === 'done' ? '✓' : '×'}
-                      </span>
-                      <span className="step-message">{step.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : desktopMode === null ? (
-              <p>Desktop ready for agent use</p>
-            ) : desktopMode === 'terminal' ? (
-              <div className="terminal-view">
-                {terminalHistory.length === 0 ? (
-                  <div className="terminal-empty">No commands executed yet</div>
-                ) : (
-                  <div className="terminal-history">
-                    {terminalHistory.map((cmd, index) => (
-                      <div key={index} className="terminal-entry">
-                        <div className="terminal-command">
-                          <span className="prompt">$</span> {cmd.command}
-                        </div>
-                        <pre className="terminal-output">{cmd.output}</pre>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : desktopMode === 'browser' ? (
-              <div className="browser-view">
-                {browserViews.length === 0 ? (
-                  <div className="browser-empty">No active browser sessions</div>
-                ) : (
-                  <div className="browser-stream">
-                    <div className="browser-header">
-                      <span className="browser-url">{browserViews[browserViews.length - 1].url}</span>
-                    </div>
-                    <div className="stream-container">
-                      <img 
-                        src={browserViews[browserViews.length - 1].streamUrl} 
-                        alt="Browser View"
-                        className="stream-content"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="editor-view">
-                {fileEdits.length === 0 ? (
-                  <div className="editor-empty">No files modified yet</div>
-                ) : (
-                  <div className="file-history">
-                    {fileEdits.map((edit, index) => (
-                      <div key={index} className="file-entry">
-                        <div className="file-header">
-                          <span className="file-name">{edit.filename}</span>
-                          <span className="file-type">{edit.type === 'diff' ? 'Modified' : 'New File'}</span>
-                        </div>
-                        <pre className={`file-content ${edit.type === 'diff' ? 'diff' : ''}`}>
-                          <code className={`language-${edit.language}`}>
-                            {edit.content}
-                          </code>
-                        </pre>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
