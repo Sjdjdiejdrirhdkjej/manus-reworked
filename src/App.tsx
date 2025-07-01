@@ -81,7 +81,8 @@ function App() {
         <input
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)
+      }
           onKeyPress={(e) => {
             if (e.key === 'Enter') {
               handleSendMessage();
@@ -91,7 +92,7 @@ function App() {
         />
         <button onClick={handleSendMessage}>Send</button>
       </div>
-      <button onClick={toggleFullscreen} className="fullscreen-button">Toggle Fullscreen</button>
+      
     </div>
   );
 }
