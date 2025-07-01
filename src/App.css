@@ -357,16 +357,26 @@ html, body {
 }
 
 /* Streaming message styles */
-.ai-message .stream-message {
+.stream-message {
   color: #90cdf4;
   font-style: italic;
   padding: 4px 0;
-  animation: fadeIn 0.3s ease-in;
+  margin: 4px 0;
+  animation: fadeInSlide 0.3s ease-out;
+  border-left: 2px solid #4299e1;
+  padding-left: 8px;
+  background-color: rgba(66, 153, 225, 0.1);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .input-area {

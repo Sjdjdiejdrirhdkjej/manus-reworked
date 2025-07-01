@@ -68,10 +68,19 @@ function App() {
                      <div className="thinking-message">
                        {message.text.split('[THINKING_TAB]')[1].split('[/THINKING_TAB]')[0]}
                        <div className="actual-response">
-                         {message.text.split('[/THINKING_TAB]')[1].trim()}
+                         {message.text.split('[/THINKING_TAB]')[1].trim().split('\n').map((line, i) => {
+                           if (line.startsWith('Streaming: ')) {
+                             return <div key={i} className="stream-message">{line.replace('Streaming: ', '')}</div>;
+                           }
+                           return <div key={i}>{line}</div>;
+                         })}
                        </div>
                      </div>
-                   ) : message.text}                </div>
+                   ) : message.text.split('\n').map((line, i) => (
+                     line.startsWith('Streaming: ') ? 
+                       <div key={i} className="stream-message">{line.replace('Streaming: ', '')}</div> :
+                       <div key={i}>{line}</div>
+                   ))}                </div>
               ))}
             </div>
             <div className="input-area">

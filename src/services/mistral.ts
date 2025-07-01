@@ -625,7 +625,7 @@ export async function getChatResponse(message: string, mode: ChatMode): Promise<
             allMatches.forEach(match => {
               if (match.isStream) {
                 // Keep streams in main content
-                processedContent = processedContent.replace(match.original, match.content);
+                processedContent = processedContent.replace(match.original, `Streaming: ${match.content}`);
               } else {
                 // Collect thinking content
                 combinedThinking += match.content + '\n';
