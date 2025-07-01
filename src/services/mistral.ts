@@ -22,7 +22,9 @@ export async function getChatResponse(message: string, mode: ChatMode): Promise<
         'Authorization': `Bearer ${MISTRAL_API_KEY}`
       },
       body: JSON.stringify({
-        model: "mistral-tiny",
+        model: mode === 'chat' ? "mistral-tiny" : 
+              mode === 'cua' ? "mistral-medium-latest" : 
+              "magistral-medium-latest",
         messages: [
           { role: "system", content: SYSTEM_PROMPTS[mode] },
           { role: "user", content: message }
