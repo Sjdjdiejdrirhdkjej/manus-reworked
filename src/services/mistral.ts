@@ -167,24 +167,133 @@ COMMUNICATION:
 import { availableTools } from './tools';
 
 export async function getChatResponse(message: string, mode: ChatMode): Promise<string> {
-  // Check if message starts with a tool command
-  const toolMatch = message.match(/^(search files:|analyze code:|git:)\s*(.+)$/i);
-  if (toolMatch && (mode === 'cua' || mode === 'high-effort')) {
-    const [, command, param] = toolMatch;
-    const toolName = command.toLowerCase().replace(/[^a-z]/g, '');
-    const tool = availableTools.find(t => t.name === toolName);
-    
-    if (tool) {
-      try {
-        const result = await tool.execute({ 
-          pattern: param,
-          code: param,
-          command: param
-        });
-        return result.output;
-      } catch (error) {
-        return `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+  // Process message for tool usage first
+  if (mode === 'cua' || mode === 'high-effort') {
+    try {
+      // File operations
+      const writeFileMatch = message.match(/write(?:_to)?_file\(['"]([^'"]+)['"],\s*['"]([^'"]+)['"]\)/i);
+      if (writeFileMatch) {
+        const [, fileName, content] = writeFileMatch;
+        const tool = availableTools.find(t => t.name === 'write_file');
+        if (tool) {
+          const result = await tool.execute({ fileName, content });
+          return result.output;
+        }
       }
+
+      const readFileMatch = message.match(/read_file\(['"]([^'"]+)['"](?:,\s*(\d+)(?:,\s*(\d+))?)?\)/i);
+      if (readFileMatch) {
+        const [, fileName, lineStart, lineEnd] = readFileMatch;
+        const tool = availableTools.find(t => t.name === 'read_file');
+        if (tool) {
+          const result = await tool.execute({ fileName, lineStart, lineEnd });
+          return result.output;
+        }
+      }
+
+      // Browser operations
+      const goToMatch = message.match(/go_to\(['"]([^'"]+)['"]\)/i);
+      if (goToMatch) {
+        const [, url] = goToMatch;
+        const tool = availableTools.find(t => t.name === 'go_to');
+        if (tool) {
+          const result = await tool.execute({ url });
+          return result.output;
+        }
+      }
+
+      const clickMatch = message.match(/click\((\d+)\)/i);
+      if (clickMatch) {
+        const [, index] = clickMatch;
+        const tool = availableTools.find(t => t.name === 'click');
+        if (tool) {
+          const result = await tool.execute({ index: parseInt(index, 10) });
+          return result.output;
+        }
+      }
+
+      const scrollMatch = message.match(/(scroll_(?:up|down))\((\d+)\)/i);
+      if (scrollMatch) {
+        const [, direction, pixels] = scrollMatch;
+        const tool = availableTools.find(t => t.name === direction.toLowerCase());
+        if (tool) {
+          const result = await tool.execute({ pixels: parseInt(pixels, 10) });
+          return result.output;
+        }
+      }
+
+      const pressKeyMatch = message.match(/press_key\(['"]([^'"]+)['"]\)/i);
+      if (pressKeyMatch) {
+        const [, key] = pressKeyMatch;
+        const tool = availableTools.find(t => t.name === 'press_key');
+        if (tool) {
+          const result = await tool.execute({ key });
+          return result.output;
+        }
+      }
+
+      const switchTabMatch = message.match(/switch_tab\((\d+)\)/i);
+      if (switchTabMatch) {
+        const [, tabIndex] = switchTabMatch;
+        const tool = availableTools.find(t => t.name === 'switch_tab');
+        if (tool) {
+          const result = await tool.execute({ tabIndex: parseInt(tabIndex, 10) });
+          return result.output;
+        }
+      }
+
+      const newTabMatch = message.match(/new_tab\(\)/i);
+      if (newTabMatch) {
+        const tool = availableTools.find(t => t.name === 'new_tab');
+        if (tool) {
+          const result = await tool.execute({});
+          return result.output;
+        }
+      }
+
+      // Terminal operations
+      const executeCommandMatch = message.match(/execute_command\(['"]([^'"]+)['"]\)/i);
+      if (executeCommandMatch) {
+        const [, command] = executeCommandMatch;
+        const tool = availableTools.find(t => t.name === 'execute_command');
+        if (tool) {
+          const result = await tool.execute({ command });
+          return result.output;
+        }
+      }
+
+      const writeToTerminalMatch = message.match(/write_to_terminal\(['"]([^'"]+)['"]\)/i);
+      if (writeToTerminalMatch) {
+        const [, text] = writeToTerminalMatch;
+        const tool = availableTools.find(t => t.name === 'write_to_terminal');
+        if (tool) {
+          const result = await tool.execute({ text });
+          return result.output;
+        }
+      }
+
+      const runInBackgroundMatch = message.match(/run_in_background\(['"]([^'"]+)['"]\)/i);
+      if (runInBackgroundMatch) {
+        const [, command] = runInBackgroundMatch;
+        const tool = availableTools.find(t => t.name === 'run_in_background');
+        if (tool) {
+          const result = await tool.execute({ command });
+          return result.output;
+        }
+      }
+
+      // Search operations
+      const searchGoogleMatch = message.match(/search_google\(['"]([^'"]+)['"]\)/i);
+      if (searchGoogleMatch) {
+        const [, query] = searchGoogleMatch;
+        const tool = availableTools.find(t => t.name === 'search_google');
+        if (tool) {
+          const result = await tool.execute({ query });
+          return result.output;
+        }
+      }
+    } catch (error) {
+      return `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
   if (!MISTRAL_API_KEY) {
