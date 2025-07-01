@@ -20,11 +20,14 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<ChatMode>('chat');
-  const [desktopMode, setDesktopMode] = useState<DesktopMode>(null);
+  const [desktopMode] = useState<DesktopMode>(null);
   const [initStatus, setInitStatus] = useState<InitStatus>('pending');
+  const [sandboxKey, setSandboxKey] = useState<string | null>(
+    localStorage.getItem('CODESANDBOX_API_KEY')
+  );
   const [initSteps, setInitSteps] = useState<InitStep[]>([
     { message: 'Starting system initialization...', status: 'pending' },
-    { message: 'Establishing secure connection...', status: 'pending' },
+    { message: 'Checking CodeSandbox API key...', status: 'pending' },
     { message: 'Connecting to CodeSandbox...', status: 'pending' },
     { message: 'Setting up virtual environment...', status: 'pending' },
     { message: 'Preparing development workspace...', status: 'pending' }
@@ -52,9 +55,18 @@ function App() {
         ));
       }
 
-      // TODO: Actually try to connect to CodeSandbox here
+      // Check for CodeSandbox API key
+      if (!sandboxKey) {
+        setInitSteps(steps => steps.map((step, index) => 
+          index === 1 ? { ...step, status: 'error' } : step
+        ));
+        setInitStatus('error');
+        return;
+      }
+
+      // Try to connect to CodeSandbox
       try {
-        // Simulate CodeSandbox connection
+        // TODO: Validate the API key with CodeSandbox
         await new Promise(resolve => setTimeout(resolve, 1500));
         setInitStatus('ready');
       } catch (error) {
@@ -134,7 +146,7 @@ function App() {
         <div className="desktop-modes">
           <button 
             className={`desktop-mode-button ${desktopMode === 'terminal' ? 'active' : ''}`}
-            onClick={() => setDesktopMode(desktopMode === 'terminal' ? null : 'terminal')}
+            disabled
           >
             <svg className="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 17l6-6-6-6M12 19h8" />
@@ -143,7 +155,7 @@ function App() {
           </button>
           <button 
             className={`desktop-mode-button ${desktopMode === 'browser' ? 'active' : ''}`}
-            onClick={() => setDesktopMode(desktopMode === 'browser' ? null : 'browser')}
+            disabled
           >
             <svg className="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 12h18M12 3v18M4 4l16 16M4 20L20 4" />
@@ -152,7 +164,7 @@ function App() {
           </button>
           <button 
             className={`desktop-mode-button ${desktopMode === 'editor' ? 'active' : ''}`}
-            onClick={() => setDesktopMode(desktopMode === 'editor' ? null : 'editor')}
+            disabled
           >
             <svg className="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
@@ -163,14 +175,32 @@ function App() {
         <div className="desktop-content">
           {initStatus !== 'ready' ? (
             <div className="init-sequence">
-              <div className="init-header">
+                  <div className="init-header">
                 <span className={`init-status ${initStatus}`}>
                   {initStatus === 'pending' ? 'Waiting to start...' :
                    initStatus === 'connecting' ? 'Initializing...' :
+                   initStatus === 'error' && !sandboxKey ? 'CodeSandbox API Key Required' :
                    initStatus === 'error' ? 'Connection Error' : 'Ready'}
                 </span>
-              </div>
-              <div className="init-steps">
+                {initStatus === 'error' && !sandboxKey && (
+                  <div className="api-key-form">
+                    <input
+                      type="password"
+                      placeholder="Enter CodeSandbox API Key"
+                      className="api-key-input"
+                      value={sandboxKey || ''}
+                      onChange={(e) => {
+                        const key = e.target.value;
+                        setSandboxKey(key);
+                        if (key) {
+                          localStorage.setItem('CODESANDBOX_API_KEY', key);
+                          window.location.reload();
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>              <div className="init-steps">
                 {initSteps.map((step, index) => (
                   <div key={index} className={`init-step ${step.status}`}>
                     <span className="step-indicator">
