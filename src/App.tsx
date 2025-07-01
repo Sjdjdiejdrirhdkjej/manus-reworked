@@ -33,8 +33,8 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div className="app-container">
+      <div className="chat-section">
         <div className="chat-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div className="message-list" style={{ flex: 1, overflowY: 'auto' }}>
             {messages.map((message, index) => (
