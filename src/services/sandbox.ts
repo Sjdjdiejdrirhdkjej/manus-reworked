@@ -1,21 +1,34 @@
 import { WebContainer } from '@webcontainer/api';
 
 export class SandboxService {
+  private static containerPromise: Promise<WebContainer> | null = null;
   private container: WebContainer | null = null;
   private files: Record<string, { code: string }> = {};
+
+  // Start WebContainer boot as early as possible
+  static prefetch() {
+    if (!this.containerPromise) {
+      this.containerPromise = WebContainer.boot();
+    }
+    return this.containerPromise;
+  }
+
+  // Initialize this right away
+  static {
+    this.prefetch();
+  }
 
   async initialize(sandboxKey: string, onProgress?: (step: number) => void) {
     if (!sandboxKey) throw new Error('Sandbox API key is required');
 
     try {
-      // Initialize WebContainer
+      // Use prefetched container
       onProgress?.(0);
-      this.container = await WebContainer.boot();
+      this.container = await SandboxService.containerPromise!;
       onProgress?.(1);
 
-      // Mount initial filesystem
-      onProgress?.(2);
-      await this.container.mount({
+      // Prepare filesystem in parallel with container boot
+      const initialFiles = {
         'package.json': {
           file: {
             contents: JSON.stringify({
@@ -25,10 +38,13 @@ export class SandboxService {
             })
           }
         }
-      });
+      };
+
+      onProgress?.(2);
+      // Mount filesystem (should be very quick now)
+      await this.container.mount(initialFiles);
       
       onProgress?.(3);
-      // Skip actual npm init for faster startup
       onProgress?.(4);
       return true;
     } catch (error) {

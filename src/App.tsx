@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getChatResponse } from './services/mistral';
 import type { ChatMode } from './services/mistral';
-import { sandboxService } from './services/sandbox';
+import { sandboxService, SandboxService } from './services/sandbox';
 import './App.css';
 
 interface Message {
@@ -84,6 +84,9 @@ interface InitStep {
   message: string;
   status: 'pending' | 'loading' | 'done' | 'error';
 }
+
+// Start prefetching as soon as possible
+SandboxService.prefetch();
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
