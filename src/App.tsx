@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { getChatResponse } from './services/mistral';
 import type { ChatMode } from './services/mistral';
-import { sandboxService, SandboxService } from './services/sandbox';
 import './App.css';
 
 interface Message {
@@ -9,43 +8,11 @@ interface Message {
   sender: 'user' | 'ai';
 }
 
-type DesktopMode = 'terminal' | 'browser' | 'editor' | null;
-type InitStatus = 'pending' | 'connecting' | 'ready' | 'error';
-
-interface InitStep {
-  message: string;
-  status: 'pending' | 'loading' | 'done' | 'error';
-}
-
-interface TerminalCommand {
-  command: string;
-  output: string;
-  timestamp: number;
-  waiting?: boolean;
-}
-
-interface FileEdit {
-  type: 'diff' | 'new';
-  filename: string;
-  content: string;
-  language: string;
-  timestamp: number;
-}
-
-interface BrowserView {
-  url: string;
-  streamUrl: string;
-  timestamp: number;
-}
-
 // Start prefetching as soon as possible
-SandboxService.prefetch();
-
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<ChatMode>('chat');
-  const [initStatus, setInitStatus] = useState<InitStatus>('ready');
   const [showSettings, setShowSettings] = useState(false);
   
   const [mistralKey, setMistralKey] = useState<string | null>(
@@ -55,19 +22,26 @@ function App() {
     localStorage.getItem('CODESANDBOX_API_KEY') || import.meta.env.VITE_CODESANDBOX_API_KEY || null
   );
 
-  const [terminalHistory, setTerminalHistory] = useState<TerminalCommand[]>([]);
-  const [fileEdits, setFileEdits] = useState<FileEdit[]>([]);
-  const [browserViews, setBrowserViews] = useState<BrowserView[]>([]);
+  const handleSendMessage = () => {
+    if (input.trim()) {
+      const userMessage: Message = { text: input, sender: 'user' };
+      setMessages((prevMessages) => [...prevMessages, userMessage]);
+      setInput('');
 
-  const [initSteps, setInitSteps] = useState<InitStep[]>([
-    { message: 'Starting WebContainer...', status: 'pending' },
-    { message: 'Checking API key...', status: 'pending' },
-    { message: 'Setting up file system...', status: 'pending' },
-    { message: 'Installing dependencies...', status: 'pending' },
-    { message: 'Preparing workspace...', status: 'pending' }
-  ]);
-
-  // Include all your existing useEffect and handler functions here
+      // Show typing indicator
+      setMessages((prevMessages) => [...prevMessages, { text: 'typingIndicator', sender: 'ai' }]);
+      
+      // Get AI response from Mistral
+      getChatResponse(input, mode)
+        .then(response => {
+          setMessages((prevMessages) => [...prevMessages.slice(0, -1), { text: response, sender: 'ai' }]);
+        })
+        .catch(error => {
+          const errorResponse: Message = { text: `Error: ${error.message}`, sender: 'ai' };
+          setMessages((prevMessages) => [...prevMessages, errorResponse]);
+        });
+    }
+  };
 
   return (
     <div className="app-container">
