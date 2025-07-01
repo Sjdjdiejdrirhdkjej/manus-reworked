@@ -38,8 +38,8 @@ function App() {
 
   return (
     <div className="app-container">
-      <div className="chat-section" style={{ display: 'flex', width: '100%' }}>
-        <div style={{ flex: mode === 'chat' ? 1 : 0.6 }}>
+      <div className="chat-section" style={{ display: 'flex', width: '100%', height: '100vh' }}>
+        <div style={{ flex: mode === 'chat' ? 1 : 0.6, height: '100%' }}>
           <div className="chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="message-list" style={{ flex: 1, overflowY: 'auto' }}>
               {messages.length === 0 && (
@@ -93,12 +93,13 @@ function App() {
             </div>
           </div>
         </div>
-         {(mode === 'cua' || mode === 'high-effort') && (
-          <div className="desktop-view" style={{ flex: 0.4, borderLeft: '1px solid #ccc', padding: '20px' }}>
+        {(mode === 'cua' || mode === 'high-effort') && (
+          <div className="desktop-view" style={{ flex: 0.4, borderLeft: '1px solid #ccc', padding: '20px', height: '100%', overflowY: 'auto' }}>
             <h2>Desktop View</h2>
             <p>Selected Mode: {mode}</p>
           </div>
-        )}      </div>
+        )}
+      </div>
     </div>
   );
 }
