@@ -1,35 +1,54 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+interface Message {
+  text: string;
+  sender: 'user' | 'ai';
 }
 
-export default App
+function App() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+
+  const handleSendMessage = () => {
+    if (input.trim()) {
+      const userMessage: Message = { text: input, sender: 'user' };
+      setMessages((prevMessages) => [...prevMessages, userMessage]);
+      setInput('');
+
+      // Simulate AI response
+      setTimeout(() => {
+        const aiResponse: Message = { text: `AI: You said "${input}"`, sender: 'ai' };
+        setMessages((prevMessages) => [...prevMessages, aiResponse]);
+      }, 500);
+    }
+  };
+
+  return (
+    <div className="chat-container">
+      <div className="message-list">
+        {messages.map((message, index) => (
+          <div key={index} className={`message-bubble ${message.sender}-message`}>
+            {message.text}
+          </div>
+        ))}
+      </div>
+      <div className="input-area">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSendMessage();
+            }
+          }}
+          placeholder="Type your message..."
+        />
+        <button onClick={handleSendMessage}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+export default App;
