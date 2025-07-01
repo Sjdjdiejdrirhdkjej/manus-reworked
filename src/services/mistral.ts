@@ -288,7 +288,37 @@ IF clarification needed:
 4. ALWAYS verify results
 5. ALWAYS maintain system state awareness`,
 
-  'high-effort': `You are a high-precision software development assistant with complete control over the development environment. You MUST use exact tool commands - NEVER explain or suggest what to do.
+  'high-effort': `You are a high-precision software development assistant with complete control over the development environment. You MUST use exact tool commands and MUST stream your responses in real-time.
+
+# Response Streaming Protocol
+You MUST stream your thought process and actions in this exact format:
+
+<stream>Initiating task analysis...</stream>
+<think>
+1. First analyzing requirements
+2. Planning approach
+</think>
+
+<stream>Planning implementation steps...</stream>
+<think>
+1. Listing required files
+2. Determining dependencies
+</think>
+
+<stream>Beginning implementation...</stream>
+write_file("example.ts", "// code here")
+
+<stream>Verifying changes...</stream>
+read_file("example.ts")
+
+<stream>Task completed successfully.</stream>
+
+# Response Rules
+1. ALWAYS start with <stream> message
+2. ALWAYS show thinking steps with <think> tags
+3. ALWAYS stream each major action
+4. NEVER explain without streaming
+5. NEVER batch actions without streaming
 
 # Core Directives
 1. NEVER output file contents in chat - use write_file()
@@ -572,12 +602,54 @@ export async function getChatResponse(message: string, mode: ChatMode): Promise<
 
     const data = await response.json();
           const content = data.choices[0].message.content;
-          // Extract thinking content and format it
+          
+          if (mode === 'high-effort') {
+            // Process streaming and thinking for high-effort mode
+            const streamMatches = content.match(/<stream>([\s\S]*?)<\/stream>/g) || [];
+            const thinkMatches = content.match(/<think>([\s\S]*?)<\/think>/g) || [];
+            
+            // Combine all streams and thinks in order
+            let processedContent = content;
+            let combinedThinking = '';
+            
+            // Extract and process all matches
+            const allMatches = [...streamMatches, ...thinkMatches]
+              .map(match => {
+                const isStream = match.startsWith('<stream>');
+                const content = match.replace(isStream ? /<\/?stream>/g : /<\/?think>/g, '').trim();
+                return { isStream, content, original: match };
+              })
+              .sort((a, b) => content.indexOf(a.original) - content.indexOf(b.original));
+
+            // Process each match
+            allMatches.forEach(match => {
+              if (match.isStream) {
+                // Keep streams in main content
+                processedContent = processedContent.replace(match.original, match.content);
+              } else {
+                // Collect thinking content
+                combinedThinking += match.content + '\n';
+                // Remove think blocks from main content
+                processedContent = processedContent.replace(match.original, '');
+              }
+            });
+
+            // Calculate thinking time (1 second per 20 chars of combined thinking)
+            const thinkSeconds = Math.max(1, Math.ceil(combinedThinking.length / 20));
+            
+            // Format final output with thinking tab
+            if (combinedThinking) {
+              return `[THINKING_TAB]Thought for ${thinkSeconds} seconds:\n${combinedThinking.trim()}[/THINKING_TAB]\n\n${processedContent.trim()}`;
+            }
+            
+            return processedContent.trim();
+          }
+          
+          // Original thinking processing for other modes
           const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
           if (thinkMatch) {
             const thinkContent = thinkMatch[1];
             const remainingContent = content.replace(/<think>[\s\S]*?<\/think>/, '').trim();
-            // Calculate rough thinking time based on content length (1 second per 20 chars)
             const thinkSeconds = Math.max(1, Math.ceil(thinkContent.length / 20));
             return `[THINKING_TAB]Thought for ${thinkSeconds} seconds:\n${thinkContent}[/THINKING_TAB]\n\n${remainingContent}`;
           }

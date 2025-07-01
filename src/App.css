@@ -356,6 +356,19 @@ html, body {
   color: #9ae6b4;
 }
 
+/* Streaming message styles */
+.ai-message .stream-message {
+  color: #90cdf4;
+  font-style: italic;
+  padding: 4px 0;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .input-area {
   padding: 20px;
   border-top: 1px solid #2d3748;
