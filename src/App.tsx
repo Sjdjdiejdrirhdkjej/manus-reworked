@@ -1,6 +1,23 @@
 import { useState } from 'react';
 import './App.css';
 
+declare global {
+  interface Document {
+    mozFullScreenElement?: Element;
+    msFullscreenElement?: Element;
+    webkitFullscreenElement?: Element;
+    msExitFullscreen?: () => void;
+    mozCancelFullScreen?: () => void;
+    webkitExitFullscreen?: () => void;
+  }
+
+  interface HTMLElement {
+    msRequestFullscreen?: () => Promise<void>;
+    mozRequestFullScreen?: () => Promise<void>;
+    webkitRequestFullscreen?: () => Promise<void>;
+  }
+}
+
 interface Message {
   text: string;
   sender: 'user' | 'ai';
@@ -21,6 +38,33 @@ function App() {
         const aiResponse: Message = { text: `AI: You said "${input}"`, sender: 'ai' };
         setMessages((prevMessages) => [...prevMessages, aiResponse]);
       }, 500);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement &&    // standard
+        !document.mozFullScreenElement && // Firefox
+        !document.webkitFullscreenElement && // Chrome, Safari and Opera
+        !document.msFullscreenElement) {  // IE/Edge
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+      } else if (document.documentElement.mozRequestFullScreen) {
+        document.documentElement.mozRequestFullScreen();
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      } else if (document.documentElement.msRequestFullscreen) {
+        document.documentElement.msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
     }
   };
 
@@ -47,6 +91,7 @@ function App() {
         />
         <button onClick={handleSendMessage}>Send</button>
       </div>
+      <button onClick={toggleFullscreen} className="fullscreen-button">Toggle Fullscreen</button>
     </div>
   );
 }
