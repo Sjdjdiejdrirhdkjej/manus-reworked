@@ -15,7 +15,55 @@ interface TerminalCommand {
   command: string;
   output: string;
   timestamp: number;
+  waiting?: boolean; // For commands waiting for input
 }
+
+type DesktopCommand = 
+  | { type: 'write_to_file'; filename: string; content: string; }
+  | { type: 'read_file'; filename: string; start?: number; end?: number; }
+  | { type: 'search_google'; query: string; }
+  | { type: 'go_to'; url: string; }
+  | { type: 'click'; index: number; }
+  | { type: 'scroll_down'; pixels: number; }
+  | { type: 'scroll_up'; pixels: number; }
+  | { type: 'press_key'; key: 'ENTER'; }
+  | { type: 'switch_tab'; index: number; }
+  | { type: 'new_tab'; }
+  | { type: 'execute_command'; command: string; }
+  | { type: 'write_to_terminal'; text: string; }
+  | { type: 'run_in_background'; command: string; }
+
+const getFileLanguage = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  const languageMap: Record<string, string> = {
+    'js': 'javascript',
+    'ts': 'typescript',
+    'jsx': 'jsx',
+    'tsx': 'tsx',
+    'py': 'python',
+    'rb': 'ruby',
+    'java': 'java',
+    'cpp': 'cpp',
+    'c': 'c',
+    'cs': 'csharp',
+    'go': 'go',
+    'rs': 'rust',
+    'php': 'php',
+    'html': 'html',
+    'css': 'css',
+    'scss': 'scss',
+    'json': 'json',
+    'yaml': 'yaml',
+    'yml': 'yaml',
+    'md': 'markdown',
+    'sql': 'sql',
+    'sh': 'shell',
+    'bash': 'shell',
+    'xml': 'xml',
+    'txt': 'text'
+  };
+  return languageMap[ext] || 'text';
+};
 
 interface FileEdit {
   type: 'diff' | 'new';
@@ -48,6 +96,86 @@ function App() {
   const [terminalHistory, setTerminalHistory] = useState<TerminalCommand[]>([]);
   const [fileEdits, setFileEdits] = useState<FileEdit[]>([]);
   const [browserViews, setBrowserViews] = useState<BrowserView[]>([]);
+  const [currentElements, setCurrentElements] = useState<{ index: number; box: string }[]>([]);
+
+  const handleDesktopCommand = async (command: DesktopCommand) => {
+    if (mode === 'chat') return; // Desktop commands only work in CUA and high-effort modes
+
+    switch (command.type) {
+      case 'write_to_file':
+        setDesktopMode('editor');
+        setFileEdits(prev => [...prev, {
+          type: 'new',
+          filename: command.filename,
+          content: command.content,
+          language: command.filename.split('.').pop() || 'txt',
+          timestamp: Date.now()
+        }]);
+        break;
+
+      case 'read_file':
+        setDesktopMode('editor');
+        // This would be handled by the agent to add to context
+        break;
+
+      case 'search_google':
+        setDesktopMode('browser');
+        setBrowserViews(prev => [...prev, {
+          url: `https://www.google.com/search?q=${encodeURIComponent(command.query)}`,
+          streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
+          timestamp: Date.now()
+        }]);
+        break;
+
+      case 'go_to':
+        setDesktopMode('browser');
+        setBrowserViews(prev => [...prev, {
+          url: command.url,
+          streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
+          timestamp: Date.now()
+        }]);
+        break;
+
+      case 'execute_command':
+        setDesktopMode('terminal');
+        setTerminalHistory(prev => [...prev, {
+          command: command.command,
+          output: 'Command output will appear here...',
+          timestamp: Date.now()
+        }]);
+        break;
+
+      case 'write_to_terminal':
+        setDesktopMode('terminal');
+        setTerminalHistory(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.waiting) {
+            return [...prev.slice(0, -1), {
+              ...last,
+              output: last.output + '\n' + command.text,
+              waiting: false
+            }];
+          }
+          return prev;
+        });
+        break;
+
+      case 'run_in_background':
+        // No visual update needed
+        break;
+
+      // Browser controls
+      case 'click':
+      case 'scroll_down':
+      case 'scroll_up':
+      case 'press_key':
+      case 'switch_tab':
+      case 'new_tab':
+        setDesktopMode('browser');
+        // These would update the browser state and trigger a new stream frame
+        break;
+    }
+  };
   const [initSteps, setInitSteps] = useState<InitStep[]>([
     { message: 'Starting system initialization...', status: 'pending' },
     { message: 'Checking CodeSandbox API key...', status: 'pending' },
@@ -305,8 +433,10 @@ function App() {
                           <span className="file-name">{edit.filename}</span>
                           <span className="file-type">{edit.type === 'diff' ? 'Modified' : 'New File'}</span>
                         </div>
-                        <pre className={`file-content language-${edit.language}`}>
-                          {edit.content}
+                        <pre className={`file-content ${edit.type === 'diff' ? 'diff' : ''}`}>
+                          <code className={`language-${edit.language}`}>
+                            {edit.content}
+                          </code>
                         </pre>
                       </div>
                     ))}
