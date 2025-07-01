@@ -88,7 +88,7 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<ChatMode>('chat');
-  const [desktopMode] = useState<DesktopMode>(null);
+  const [desktopMode, setDesktopMode] = useState<DesktopMode>(null);
   const [initStatus, setInitStatus] = useState<InitStatus>('ready');
   const [sandboxKey, setSandboxKey] = useState<string | null>(
     localStorage.getItem('CODESANDBOX_API_KEY')
@@ -258,7 +258,7 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
+    <div className="app-container">
       <div className="chat-section">
         <div className="chat-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div className="message-list" style={{ flex: 1, overflowY: 'auto' }}>
