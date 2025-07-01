@@ -1,8 +1,6 @@
 body {
   margin: 0;
   display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100vw;
   height: 100vh;
   background-color: #282c34;
@@ -14,11 +12,9 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1200px;
   height: 100%;
   overflow: hidden;
   background-color: #333;
-  margin: 0 auto;
 }
 
 .message-list {
