@@ -1,7 +1,15 @@
+export type ChatMode = 'chat' | 'cua' | 'high-effort';
+
 const MISTRAL_API_KEY = import.meta.env.VITE_MISTRAL_API_KEY;
 const MISTRAL_API_URL = import.meta.env.VITE_MISTRAL_API_URL || 'https://api.mistral.ai/v1';
 
-export async function getChatResponse(message: string): Promise<string> {
+const SYSTEM_PROMPTS: Record<ChatMode, string> = {
+  chat: "You are a helpful chat assistant.",
+  cua: "You are a customer understanding assistant helping to understand user needs and problems.",
+  'high-effort': "You are an assistant focused on providing detailed, well-researched answers with thorough analysis."
+};
+
+export async function getChatResponse(message: string, mode: ChatMode): Promise<string> {
   if (!MISTRAL_API_KEY) {
     throw new Error('Mistral API key is not configured');
   }
@@ -15,7 +23,10 @@ export async function getChatResponse(message: string): Promise<string> {
       },
       body: JSON.stringify({
         model: "mistral-tiny",
-        messages: [{ role: "user", content: message }]
+        messages: [
+          { role: "system", content: SYSTEM_PROMPTS[mode] },
+          { role: "user", content: message }
+        ]
       })
     });
 
