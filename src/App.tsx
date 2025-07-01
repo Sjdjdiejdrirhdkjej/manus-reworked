@@ -248,7 +248,38 @@ function App() {
       // Get AI response from Mistral
       getChatResponse(input, mode)
         .then(response => {
-          setMessages((prevMessages) => [...prevMessages.slice(0, -1), { text: response, sender: 'ai' }]);
+          // Step 1: Show agent's reasoning
+          setMessages((prevMessages) => [...prevMessages.slice(0, -1), { 
+            text: `[Reasoning]\n${response}`, 
+            sender: 'ai' 
+          }]);
+
+          // Step 2: Show action (example desktop command)
+          if (mode !== 'chat') {
+            setTimeout(() => {
+              setMessages(prev => [...prev, {
+                text: '[Action]\nwrite_to_file("example.txt", "This is a test")',
+                sender: 'ai'
+              }]);
+
+              // Execute the action
+              handleDesktopCommand({
+                type: 'write_to_file',
+                filename: 'example.txt',
+                content: 'This is a test'
+              });
+
+              // Step 3: Show action review
+              setTimeout(() => {
+                setMessages(prev => [...prev, {
+                  text: '[Review]\nFile has been created successfully. Contents verified.',
+                  sender: 'ai'
+                }]);
+
+                // Step 4: Next reasoning would start on next user message
+              }, 1000);
+            }, 1000);
+          }
         })
         .catch(error => {
           const errorResponse: Message = { text: `Error: ${error.message}`, sender: 'ai' };
@@ -263,12 +294,28 @@ function App() {
         <div className="chat-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div className="message-list" style={{ flex: 1, overflowY: 'auto' }}>
             {messages.map((message, index) => (
-              <div key={index} className={`message-bubble ${message.sender}-message`}>
+              <div 
+                key={index} 
+                className={`message-bubble ${message.sender}-message`}
+                data-type={
+                  message.text.startsWith('[Reasoning]') ? 'reasoning' :
+                  message.text.startsWith('[Action]') ? 'action' :
+                  message.text.startsWith('[Review]') ? 'review' : undefined
+                }
+              >
                 {message.text === 'typingIndicator' ? (
                   <div className="typing-indicator">
                     Manus is typing<span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
                   </div>
-                ) : message.text}
+                ) : (
+                  <>
+                    {message.text.startsWith('[') && message.text.includes(']') ? (
+                      message.text.split('\n').slice(1).join('\n')
+                    ) : (
+                      message.text
+                    )}
+                  </>
+                )}
               </div>
             ))}
           </div>
