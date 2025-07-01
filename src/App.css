@@ -730,18 +730,7 @@ html, body {
   margin-bottom: 12px;
 }
 
-.tool-item button {
-  background-color: #2c5282;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  cursor: pointer;
+.tool-item p {
+  color: #718096;
   font-size: 14px;
-  transition: all 0.2s;
-}
-
-.tool-item button:hover {
-  background-color: #4299e1;
-  transform: translateY(-1px);
 }

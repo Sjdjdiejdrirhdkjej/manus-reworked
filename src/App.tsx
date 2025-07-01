@@ -95,19 +95,11 @@ function App() {
         </div>
 {(mode === 'cua' || mode === 'high-effort') && (
           <div className="desktop-view">
-            <h2>Available Tools</h2>
+            <h2>Agent Tools</h2>
             <div className="tools-list">
               <div className="tool-item">
-                <h3>File Search</h3>
-                <button onClick={() => setInput("Search files: ")}>Use Tool</button>
-              </div>
-              <div className="tool-item">
-                <h3>Code Analysis</h3>
-                <button onClick={() => setInput("Analyze code: ")}>Use Tool</button>
-              </div>
-              <div className="tool-item">
-                <h3>Git Operations</h3>
-                <button onClick={() => setInput("Git: ")}>Use Tool</button>
+                <h3>Tool Access Restricted</h3>
+                <p>Tools are only accessible to the AI agent</p>
               </div>
             </div>
           </div>
