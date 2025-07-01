@@ -69,7 +69,7 @@ function App() {
   };
 
   return (
-    <div className="chat-container">
+    <div className="chat-container" style={{ position: 'fixed', top: '0', right: '0', bottom: '0', left: '0' }, header: "Chat Interface"}>
       <div className="message-list">
         {messages.map((message, index) => (
           <div key={index} className={`message-bubble ${message.sender}-message`}>
