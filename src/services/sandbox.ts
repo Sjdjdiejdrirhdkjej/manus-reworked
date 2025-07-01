@@ -27,10 +27,8 @@ export class SandboxService {
         }
       });
       
-      // Set up workspace
       onProgress?.(3);
-      await this.container.spawn('npm', ['init', '-y']);
-      
+      // Skip actual npm init for faster startup
       onProgress?.(4);
       return true;
     } catch (error) {

@@ -94,7 +94,7 @@ function App() {
   const [sandboxKey, setSandboxKey] = useState<string | null>(
     localStorage.getItem('CODESANDBOX_API_KEY')
   );
-  const [sandboxReady, setSandboxReady] = useState(false);
+
   const [terminalHistory, setTerminalHistory] = useState<TerminalCommand[]>([]);
   const [fileEdits, setFileEdits] = useState<FileEdit[]>([]);
   const [browserViews, setBrowserViews] = useState<BrowserView[]>([]);
@@ -277,36 +277,17 @@ function App() {
           })));
         });
         
-        // Mark all steps as done
+        // Mark completion and set ready state
         setInitSteps(steps => steps.map(step => ({ ...step, status: 'done' })));
-        setSandboxReady(true);
-        setInitStatus('ready');
+        setTimeout(() => setInitStatus('ready'), 500); // Small delay for smooth transition
       } catch (error: unknown) {
         console.error('Failed to initialize sandbox:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         setInitSteps(steps => steps.map(step => ({
           ...step,
           status: step.status === 'loading' ? 'error' : step.status
         })));
         setInitStatus('error');
         return;
-      }
-      
-      for (let i = 0; i < initSteps.length; i++) {
-        setInitSteps(steps => steps.map((step, index) => 
-          index === i 
-            ? { ...step, status: 'loading' }
-            : step
-        ));
-
-        // Simulate each step taking some time
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        setInitSteps(steps => steps.map((step, index) => 
-          index === i 
-            ? { ...step, status: 'done' }
-            : step
-        ));
       }
 
       // Check for CodeSandbox API key
@@ -408,6 +389,22 @@ function App() {
       <div className="chat-section">
         <div className="chat-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div className="message-list" style={{ flex: 1, overflowY: 'auto' }}>
+            {messages.length === 0 && (
+              <div className="suggestions">
+                <h3>Try these examples:</h3>
+                <div className="suggestion-list">
+                  <button onClick={() => setInput("Create a new React component for a todo list")}>
+                    "Create a new React component for a todo list"
+                  </button>
+                  <button onClick={() => setInput("Help me debug this error: TypeError: Cannot read property 'map' of undefined")}>
+                    "Help me debug this error: TypeError: Cannot read property 'map' of undefined"
+                  </button>
+                  <button onClick={() => setInput("Optimize this code for better performance: for(let i=0; i<arr.length; i++) { result.push(arr[i] * 2) }")}>
+                    "Optimize this code for better performance..."
+                  </button>
+                </div>
+              </div>
+            )}
             {messages.map((message, index) => (
               <div 
                 key={index} 
