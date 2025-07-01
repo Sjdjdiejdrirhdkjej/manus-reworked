@@ -93,10 +93,23 @@ function App() {
             </div>
           </div>
         </div>
-        {(mode === 'cua' || mode === 'high-effort') && (
-          <div className="desktop-view" style={{ flex: 0.4, borderLeft: '1px solid #ccc', padding: '20px', height: '100%', overflowY: 'auto' }}>
-            <h2>Desktop View</h2>
-            <p>Selected Mode: {mode}</p>
+{(mode === 'cua' || mode === 'high-effort') && (
+          <div className="desktop-view">
+            <h2>Available Tools</h2>
+            <div className="tools-list">
+              <div className="tool-item">
+                <h3>File Search</h3>
+                <button onClick={() => setInput("Search files: ")}>Use Tool</button>
+              </div>
+              <div className="tool-item">
+                <h3>Code Analysis</h3>
+                <button onClick={() => setInput("Analyze code: ")}>Use Tool</button>
+              </div>
+              <div className="tool-item">
+                <h3>Git Operations</h3>
+                <button onClick={() => setInput("Git: ")}>Use Tool</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
