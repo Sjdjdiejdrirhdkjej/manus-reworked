@@ -241,9 +241,150 @@
   padding: 16px;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   border: 1px solid #4a5568;
   overflow-y: auto;
+  font-family: 'Fira Code', monospace;
+}
+
+/* Terminal styles */
+.terminal-view {
+  width: 100%;
+  color: #e2e8f0;
+}
+
+.terminal-empty {
+  color: #718096;
+  text-align: center;
+  padding: 20px;
+}
+
+.terminal-history {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.terminal-entry {
+  background-color: #2d3748;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.terminal-command {
+  padding: 8px 12px;
+  background-color: #2c5282;
+  border-bottom: 1px solid #4a5568;
+  font-family: 'Fira Code', monospace;
+}
+
+.prompt {
+  color: #90cdf4;
+  margin-right: 8px;
+}
+
+.terminal-output {
+  padding: 12px;
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Editor styles */
+.editor-view {
+  width: 100%;
+  color: #e2e8f0;
+}
+
+.editor-empty {
+  color: #718096;
+  text-align: center;
+  padding: 20px;
+}
+
+.file-history {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.file-entry {
+  background-color: #2d3748;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.file-header {
+  padding: 8px 12px;
+  background-color: #2c5282;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #4a5568;
+}
+
+.file-name {
+  font-weight: 500;
+}
+
+.file-type {
+  font-size: 12px;
+  padding: 2px 8px;
+  background-color: #4299e1;
+  border-radius: 12px;
+}
+
+.file-content {
+  padding: 12px;
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Browser styles */
+.browser-view {
+  width: 100%;
+  color: #e2e8f0;
+}
+
+.browser-empty {
+  color: #718096;
+  text-align: center;
+  padding: 20px;
+}
+
+.browser-stream {
+  background-color: #2d3748;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.browser-header {
+  padding: 8px 12px;
+  background-color: #2c5282;
+  border-bottom: 1px solid #4a5568;
+}
+
+.browser-url {
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+}
+
+.stream-container {
+  width: 100%;
+  background-color: #1a202c;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stream-content {
+  max-width: 100%;
+  max-height: 600px;
+  object-fit: contain;
 }
 
 .init-sequence {
