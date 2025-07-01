@@ -74,11 +74,13 @@ function App() {
       setMessages((prevMessages) => [...prevMessages, userMessage]);
       setInput('');
 
+      // Show typing indicator
+      setMessages((prevMessages) => [...prevMessages, { text: 'typingIndicator', sender: 'ai' }]);
+      
       // Get AI response from Mistral
       getChatResponse(input, mode)
         .then(response => {
-          const aiResponse: Message = { text: response, sender: 'ai' };
-          setMessages((prevMessages) => [...prevMessages, aiResponse]);
+          setMessages((prevMessages) => [...prevMessages.slice(0, -1), { text: response, sender: 'ai' }]);
         })
         .catch(error => {
           const errorResponse: Message = { text: `Error: ${error.message}`, sender: 'ai' };
@@ -94,7 +96,11 @@ function App() {
           <div className="message-list" style={{ flex: 1, overflowY: 'auto' }}>
             {messages.map((message, index) => (
               <div key={index} className={`message-bubble ${message.sender}-message`}>
-                {message.text}
+                {message.text === 'typingIndicator' ? (
+                  <div className="typing-indicator">
+                    Manus is typing<span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
+                  </div>
+                ) : message.text}
               </div>
             ))}
           </div>
