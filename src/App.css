@@ -2,10 +2,12 @@
   height: 100vh;
   margin: 0;
   padding: 0;
+  background-color: #1a2234;
+  color: #ffffff;
 }
 
 .chat-container {
-  background-color: #ffffff;
+  background-color: #1a2234;
 }
 
 .message-list {
@@ -14,48 +16,89 @@
 
 .message-bubble {
   margin: 10px;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
   max-width: 70%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .user-message {
-  background-color: #007bff;
+  background-color: #2c5282;
   color: white;
   margin-left: auto;
 }
 
 .ai-message {
-  background-color: #e9ecef;
-  color: black;
+  background-color: #2d3748;
+  color: #e2e8f0;
   margin-right: auto;
 }
 
 .input-area {
   padding: 20px;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid #2d3748;
   display: flex;
   gap: 10px;
+  background-color: #1a2234;
 }
 
 .input-area input {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 12px;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  background-color: #2d3748;
+  color: white;
 }
 
-.input-area button {
-  padding: 10px 20px;
-  background-color: #007bff;
+.input-area input::placeholder {
+  color: #a0aec0;
+}
+
+.input-area input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.mode-select {
+  padding: 12px;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  background-color: #2d3748;
+  color: white;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.mode-select:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.send-button {
+  padding: 12px 24px;
+  background-color: #4299e1;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
 }
 
-.input-area button:hover {
-  background-color: #0056b3;
+.send-button:hover {
+  background-color: #3182ce;
+}
+
+.manus-panel {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  padding: 24px;
+}
+
+.manus-panel h2 {
+  margin-bottom: 16px;
+  color: #4299e1;
 }
 
 * {
