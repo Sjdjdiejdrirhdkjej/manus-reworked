@@ -1,5 +1,10 @@
 run = "npm run dev"
-modules = ["nodejs"]
+modules = ["nodejs", "nodejs-20"]
 
 [nix]
 args = ["-I", "nixpkgs=channel:nixos-23.11", "replit.nix"]
+
+[[ports]]
+localPort = 5173
+externalPort = 80
+exposeLocalhost = true
