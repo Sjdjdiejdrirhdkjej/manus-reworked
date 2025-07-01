@@ -433,8 +433,17 @@ export async function getChatResponse(message: string, mode: ChatMode): Promise<
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
+          const content = data.choices[0].message.content;
+          // Extract thinking content and format it
+          const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+          if (thinkMatch) {
+            const thinkContent = thinkMatch[1];
+            const remainingContent = content.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+            // Calculate rough thinking time based on content length (1 second per 20 chars)
+            const thinkSeconds = Math.max(1, Math.ceil(thinkContent.length / 20));
+            return `[THINKING_TAB]Thought for ${thinkSeconds} seconds:\n${thinkContent}[/THINKING_TAB]\n\n${remainingContent}`;
+          }
+          return content;  } catch (error) {
     console.error('Error calling Mistral API:', error);
     throw error;
   }

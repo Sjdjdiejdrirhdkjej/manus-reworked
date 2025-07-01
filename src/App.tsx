@@ -59,13 +59,19 @@ function App() {
                 </div>
               )}
               {messages.map((message, index) => (
-                <div key={index} className={`message-bubble ${message.sender}-message`}>
-                  {message.text === 'typingIndicator' ? (
-                    <div className="typing-indicator">
-                      Manus is typing<span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
-                    </div>
-                  ) : message.text}
-                </div>
+                 <div key={index} className={`message-bubble ${message.sender}-message`}>
+                   {message.text === 'typingIndicator' ? (
+                     <div className="typing-indicator">
+                       Manus is typing<span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
+                     </div>
+                   ) : message.text.includes('[THINKING_TAB]') ? (
+                     <div className="thinking-message">
+                       {message.text.split('[THINKING_TAB]')[1].split('[/THINKING_TAB]')[0]}
+                       <div className="actual-response">
+                         {message.text.split('[/THINKING_TAB]')[1].trim()}
+                       </div>
+                     </div>
+                   ) : message.text}                </div>
               ))}
             </div>
             <div className="input-area">
