@@ -1,9 +1,8 @@
 body {
   margin: 0;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   background-color: #282c34;
   font-family: Arial, sans-serif;
   color: #fff;
@@ -13,10 +12,7 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 600px;
-  height: 80vh;
-  border: 1px solid #444;
-  border-radius: 8px;
+  height: 100%;
   overflow: hidden;
   background-color: #333;
 }
