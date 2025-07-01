@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getChatResponse } from './services/mistral';
 import type { ChatMode } from './services/mistral';
+import { sandboxService } from './services/sandbox';
 import './App.css';
 
 interface Message {
@@ -93,6 +94,7 @@ function App() {
   const [sandboxKey, setSandboxKey] = useState<string | null>(
     localStorage.getItem('CODESANDBOX_API_KEY')
   );
+  const [sandboxReady, setSandboxReady] = useState(false);
   const [terminalHistory, setTerminalHistory] = useState<TerminalCommand[]>([]);
   const [fileEdits, setFileEdits] = useState<FileEdit[]>([]);
   const [browserViews, setBrowserViews] = useState<BrowserView[]>([]);
@@ -101,48 +103,102 @@ function App() {
   const handleDesktopCommand = async (command: DesktopCommand) => {
     if (mode === 'chat') return; // Desktop commands only work in CUA and high-effort modes
 
+    const executeAPICommand = async <T,>(apiCall: () => Promise<T>) => {
+      try {
+        return await retryAPICall(apiCall);
+      } catch (error) {
+        console.error('API call failed after retries:', error);
+        throw error;
+      }
+    };
+
     switch (command.type) {
       case 'write_to_file':
         setDesktopMode('editor');
-        setFileEdits(prev => [...prev, {
-          type: 'new',
-          filename: command.filename,
-          content: command.content,
-          language: command.filename.split('.').pop() || 'txt',
-          timestamp: Date.now()
-        }]);
+        try {
+          const content = await sandboxService.createFile(command.filename, command.content);
+          setFileEdits(prev => [...prev, {
+            type: 'new',
+            filename: command.filename,
+            content: content,
+            language: getFileLanguage(command.filename),
+            timestamp: Date.now()
+          }]);
+
+          // Display file contents immediately after creation
+          const fileContent = await sandboxService.readFile(command.filename);
+          setMessages(prev => [...prev, {
+            text: `[File Created] ${command.filename}\n${fileContent}`,
+            sender: 'ai'
+          }]);
+        } catch (error) {
+          console.error('Failed to create file:', error);
+          throw error;
+        }
         break;
 
       case 'read_file':
         setDesktopMode('editor');
-        // This would be handled by the agent to add to context
+        try {
+          const content = await sandboxService.readFile(command.filename);
+          setFileEdits(prev => [...prev, {
+            type: 'new',
+            filename: command.filename,
+            content: content,
+            language: getFileLanguage(command.filename),
+            timestamp: Date.now()
+          }]);
+          
+          // Show the file contents in the chat
+          setMessages(prev => [...prev, {
+            text: `[File Contents] ${command.filename}\n${content}`,
+            sender: 'ai'
+          }]);
+        } catch (error) {
+          console.error('Failed to read file:', error);
+          throw error;
+        }
         break;
 
       case 'search_google':
         setDesktopMode('browser');
-        setBrowserViews(prev => [...prev, {
-          url: `https://www.google.com/search?q=${encodeURIComponent(command.query)}`,
-          streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
-          timestamp: Date.now()
-        }]);
+        await executeAPICommand(async () => {
+          setBrowserViews(prev => [...prev, {
+            url: `https://www.google.com/search?q=${encodeURIComponent(command.query)}`,
+            streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
+            timestamp: Date.now()
+          }]);
+        });
         break;
 
       case 'go_to':
         setDesktopMode('browser');
-        setBrowserViews(prev => [...prev, {
-          url: command.url,
-          streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
-          timestamp: Date.now()
-        }]);
+        await executeAPICommand(async () => {
+          setBrowserViews(prev => [...prev, {
+            url: command.url,
+            streamUrl: 'STREAM_URL_HERE', // This would be set by the actual implementation
+            timestamp: Date.now()
+          }]);
+        });
         break;
 
       case 'execute_command':
         setDesktopMode('terminal');
-        setTerminalHistory(prev => [...prev, {
-          command: command.command,
-          output: 'Command output will appear here...',
-          timestamp: Date.now()
-        }]);
+        try {
+          const output = await sandboxService.executeCommand(command.command);
+          setTerminalHistory(prev => [...prev, {
+            command: command.command,
+            output: output,
+            timestamp: Date.now()
+          }]);
+        } catch (error) {
+          console.error('Failed to execute command:', error);
+          setTerminalHistory(prev => [...prev, {
+            command: command.command,
+            output: `Error: ${error.message}`,
+            timestamp: Date.now()
+          }]);
+        }
         break;
 
       case 'write_to_terminal':
@@ -161,7 +217,16 @@ function App() {
         break;
 
       case 'run_in_background':
-        // No visual update needed
+        try {
+          await sandboxService.runInBackground(command.command);
+          setTerminalHistory(prev => [...prev, {
+            command: `${command.command} &`,
+            output: 'Command started in background',
+            timestamp: Date.now()
+          }]);
+        } catch (error) {
+          console.error('Failed to run background command:', error);
+        }
         break;
 
       // Browser controls
@@ -191,7 +256,18 @@ function App() {
         return;
       }
 
-      // Simulate system initialization
+      // Initialize sandbox if we have a key
+      if (sandboxKey && !sandboxReady) {
+        try {
+          await sandboxService.initialize(sandboxKey);
+          setSandboxReady(true);
+        } catch (error) {
+          console.error('Failed to initialize sandbox:', error);
+          setInitStatus('error');
+          return;
+        }
+      }
+
       setInitStatus('connecting');
       
       for (let i = 0; i < initSteps.length; i++) {
@@ -236,6 +312,23 @@ function App() {
     initializeSystem();
   }, [mode]);
 
+  // Utility function to retry failed API calls
+  const retryAPICall = async <T,>(
+    apiCall: () => Promise<T>,
+    maxRetries: number = 3,
+    delay: number = 3000
+  ): Promise<T> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await apiCall();
+      } catch (error) {
+        if (attempt === maxRetries) throw error;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw new Error('Max retries reached');
+  };
+
   const handleSendMessage = () => {
     if (input.trim()) {
       const userMessage: Message = { text: input, sender: 'user' };
@@ -245,8 +338,8 @@ function App() {
       // Show typing indicator
       setMessages((prevMessages) => [...prevMessages, { text: 'typingIndicator', sender: 'ai' }]);
       
-      // Get AI response from Mistral
-      getChatResponse(input, mode)
+      // Get AI response from Mistral with retry logic
+      retryAPICall(() => getChatResponse(input, mode))
         .then(response => {
           // Step 1: Show agent's reasoning
           setMessages((prevMessages) => [...prevMessages.slice(0, -1), { 

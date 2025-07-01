@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codesandbox/sandpack-client": "^2.19.8",
     "@types/node": "^24.0.8",
+    "@webcontainer/api": "^1.6.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "vite-plugin-environment": "^1.1.3"
