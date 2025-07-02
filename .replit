@@ -1,5 +1,5 @@
 run = "npm run dev"
-modules = ["web", "nodejs-20"]
+modules = [ "web", "nodejs-22"]
 
 [nix]
 args = ["-I", "nixpkgs=channel:nixos-23.11", "replit.nix"]
