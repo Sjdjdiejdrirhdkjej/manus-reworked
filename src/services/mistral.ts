@@ -588,7 +588,7 @@ export async function getChatResponse(message: string, mode: ChatMode): Promise<
       body: JSON.stringify({
         model: mode === 'chat' ? "mistral-tiny" : 
               mode === 'cua' ? "mistral-medium-latest" : 
-              "magistral-medium-latest",
+              "mistral-large-latest",
         messages: [
           { role: "system", content: SYSTEM_PROMPTS[mode] },
           { role: "user", content: message }

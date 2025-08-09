@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { getChatResponse } from './services/mistral';
 import type { ChatMode } from './services/mistral';
 import './App.css';
+import './services/sandbox';
+import SandpackRunner from './components/SandpackRunner';
 
 interface Message {
   text: string;
@@ -111,10 +113,9 @@ function App() {
 {(mode === 'cua' || mode === 'high-effort') && (
           <div className="desktop-view">
             <h2>Agent Tools</h2>
-            <div className="tools-list">
-              <div className="tool-item">
-                <h3>Tool Access Restricted</h3>
-                <p>Tools are only accessible to the AI agent</p>
+            <div className="tools-list" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <div className="tool-item" style={{ flex: 1, minHeight: 0 }}>
+                <SandpackRunner />
               </div>
             </div>
           </div>
