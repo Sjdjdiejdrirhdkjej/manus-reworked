@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@codesandbox/sandpack-client": "^2.19.8",
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@types/node": "^24.0.8",
     "@webcontainer/api": "^1.6.1",
     "opencode-ai": "^0.1.174",
